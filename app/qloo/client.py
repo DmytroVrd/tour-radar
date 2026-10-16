@@ -157,6 +157,15 @@ class QlooClient:
             "locality": data.get("query", {}).get("localities", {}).get("filter"),
         }
 
+    def region_heatmap(self, entity_ids: list[str], wkt: str) -> list[dict]:
+        """One heatmap over a whole region, so cells are comparable across cities."""
+        data = self.insights(
+            "urn:heatmap",
+            filter__location=wkt,
+            signal__interests__entities=entity_ids,
+        )
+        return data.get("results", {}).get("heatmap", [])
+
     def places(
         self,
         entity_ids: list[str],
