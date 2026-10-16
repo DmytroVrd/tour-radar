@@ -16,7 +16,10 @@ def rank_cities(client: QlooClient, entity_ids: list[str], region: str = "us") -
     request keeps scores comparable, because heatmap affinity is ranked within
     a response.
     """
-    cells = client.region_heatmap(entity_ids, REGIONS[region]["wkt"])
+    return score_cities(client.region_heatmap(entity_ids, REGIONS[region]["wkt"]))
+
+
+def score_cities(cells: list[dict]) -> list[dict]:
     ranked = []
     for city in load_cities():
         near = [
