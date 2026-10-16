@@ -1,0 +1,65 @@
+{
+  "phoebe bridgers": {
+    "success": true,
+    "duration": 41,
+    "results": [
+      {
+        "name": "Phoebe Bridgers",
+        "entity_id": "MOCK-ART-0001-PHOEBE-BRIDGERS",
+        "types": ["urn:entity:artist"],
+        "popularity": 0.9712,
+        "disambiguation": "Singer-songwriter",
+        "properties": {"short_description": "American singer-songwriter"},
+        "tags": [
+          {"id": "urn:tag:genre:music:indie_folk", "name": "Indie Folk", "type": "urn:tag:genre:music"},
+          {"id": "urn:tag:genre:music:indie_rock", "name": "Indie Rock", "type": "urn:tag:genre:music"}
+        ]
+      },
+      {
+        "name": "boygenius",
+        "entity_id": "MOCK-ART-0002-BOYGENIUS",
+        "types": ["urn:entity:artist"],
+        "popularity": 0.9301,
+        "disambiguation": "Band",
+        "properties": {"short_description": "American indie rock supergroup"},
+        "tags": [{"id": "urn:tag:genre:music:indie_rock", "name": "Indie Rock", "type": "urn:tag:genre:music"}]
+      }
+    ]
+  },
+  "khruangbin": {
+    "success": true,
+    "duration": 38,
+    "results": [
+      {
+        "name": "Khruangbin",
+        "entity_id": "MOCK-ART-0003-KHRUANGBIN",
+        "types": ["urn:entity:artist"],
+        "popularity": 0.9533,
+        "disambiguation": "Band",
+        "properties": {"short_description": "American psychedelic trio"},
+        "tags": [
+          {"id": "urn:tag:genre:music:psychedelic", "name": "Psychedelic", "type": "urn:tag:genre:music"},
+          {"id": "urn:tag:genre:music:funk", "name": "Funk", "type": "urn:tag:genre:music"}
+        ]
+      }
+    ]
+  },
+  "turnstile": {
+    "success": true,
+    "duration": 44,
+    "results": [
+      {
+        "name": "Turnstile",
+        "entity_id": "MOCK-ART-0004-TURNSTILE",
+        "types": ["urn:entity:artist"],
+        "popularity": 0.9187,
+        "disambiguation": "Band",
+        "properties": {"short_description": "American hardcore punk band"},
+        "tags": [
+          {"id": "urn:tag:genre:music:hardcore", "name": "Hardcore", "type": "urn:tag:genre:music"},
+          {"id": "urn:tag:genre:music:punk", "name": "Punk", "type": "urn:tag:genre:music"}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "MOCK-ART-0001-PHOEBE-BRIDGERS": {
+    "portland": 1.0, "seattle": 0.93, "los-angeles": 0.9, "new-york": 0.88, "oakland": 0.85,
+    "minneapolis": 0.82, "chicago": 0.8, "boston": 0.78, "burlington": 0.76, "asheville": 0.72,
+    "austin": 0.7, "denver": 0.68, "durham": 0.66, "philadelphia": 0.64, "providence": 0.62
+  },
+  "MOCK-ART-0002-BOYGENIUS": {
+    "new-york": 1.0, "boston": 0.92, "portland": 0.9, "chicago": 0.86, "minneapolis": 0.84,
+    "seattle": 0.82, "philadelphia": 0.78, "los-angeles": 0.76, "providence": 0.74, "durham": 0.7
+  },
+  "MOCK-ART-0003-KHRUANGBIN": {
+    "austin": 1.0, "houston": 0.95, "los-angeles": 0.9, "denver": 0.88, "new-orleans": 0.86,
+    "san-diego": 0.8, "oakland": 0.78, "albuquerque": 0.74, "phoenix": 0.7, "nashville": 0.68,
+    "atlanta": 0.66, "tucson": 0.64
+  },
+  "MOCK-ART-0004-TURNSTILE": {
+    "baltimore": 1.0, "philadelphia": 0.93, "richmond": 0.9, "new-york": 0.86, "washington": 0.84,
+    "boston": 0.8, "pittsburgh": 0.76, "cleveland": 0.74, "chicago": 0.72, "los-angeles": 0.7,
+    "detroit": 0.66, "atlanta": 0.62
+  }
+}
