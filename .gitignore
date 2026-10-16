@@ -1,0 +1,17 @@
+# local agent context — never publish
+CLAUDE.md
+AGENTS.md
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# local API response cache
+.cache/
