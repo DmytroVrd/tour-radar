@@ -1,3 +1,7 @@
+from itertools import permutations
+
+import pytest
+
 from app.geo import find_city
 from app.route import choose_stops, order_route, plan_route, _length
 
@@ -12,12 +16,24 @@ def test_choose_stops_skips_neighbours():
     assert ids == ["san-francisco", "portland"]
 
 
-def test_order_route_starts_west_and_beats_ranked_order():
+def test_order_route_runs_west_to_east_and_beats_ranked_order():
     stops = [city(c) for c in ["boston", "seattle", "chicago", "portland", "new-york", "denver"]]
     ordered = order_route(stops)
-    assert ordered[0]["id"] == "portland"  # westernmost longitude
+    assert ordered[0]["id"] in {"seattle", "portland"}
+    assert ordered[-1]["id"] == "boston"
     assert {s["id"] for s in ordered} == {s["id"] for s in stops}
     assert _length(ordered) < _length(stops)
+
+
+def test_order_route_matches_brute_force_on_small_tours():
+    stops = [city(c) for c in ["portland", "seattle", "los-angeles", "chicago", "denver", "austin"]]
+    best = min(_length(list(p)) for p in permutations(stops))
+    assert _length(order_route(stops)) == pytest.approx(best)
+
+
+def test_order_route_respects_fixed_start():
+    stops = [city(c) for c in ["chicago", "seattle", "denver"]]
+    assert order_route(stops, start=stops[0])[0]["id"] == "chicago"
 
 
 def test_plan_route_reports_legs():

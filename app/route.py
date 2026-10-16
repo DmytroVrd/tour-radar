@@ -22,33 +22,41 @@ def _length(path: list[dict]) -> float:
     return sum(haversine_km(a["lat"], a["lon"], b["lat"], b["lon"]) for a, b in zip(path, path[1:]))
 
 
-def order_route(stops: list[dict], start: dict | None = None) -> list[dict]:
-    """Open-path ordering: nearest neighbour from an endpoint, then 2-opt.
-
-    Without an explicit start, the tour begins at the westernmost stop, which
-    gives a readable west-to-east sweep for most US routes.
-    """
-    if len(stops) <= 2:
-        return list(stops)
-    remaining = list(stops)
-    first = start if start in remaining else min(remaining, key=lambda s: s["lon"])
-    remaining.remove(first)
+def _nearest_neighbour(stops: list[dict], first: dict) -> list[dict]:
+    remaining = [s for s in stops if s is not first]
     path = [first]
     while remaining:
         last = path[-1]
         nxt = min(remaining, key=lambda s: haversine_km(last["lat"], last["lon"], s["lat"], s["lon"]))
         remaining.remove(nxt)
         path.append(nxt)
+    return path
 
+
+def _two_opt(path: list[dict], keep_first: bool = False) -> list[dict]:
     improved = True
     while improved:
         improved = False
-        for i in range(1, len(path) - 1):
+        for i in range(1 if keep_first else 0, len(path) - 1):
             for j in range(i + 1, len(path)):
                 candidate = path[:i] + path[i:j + 1][::-1] + path[j + 1:]
                 if _length(candidate) + 1e-9 < _length(path):
                     path, improved = candidate, True
     return path
+
+
+def order_route(stops: list[dict], start: dict | None = None) -> list[dict]:
+    """Shortest open path we can find quickly: nearest neighbour + 2-opt.
+
+    With no fixed start, every stop is tried as the opening night and the
+    result is oriented west to east, which reads naturally on a US map.
+    """
+    if start is not None:
+        return _two_opt(_nearest_neighbour(stops, start), keep_first=True)
+    if len(stops) <= 2:
+        return sorted(stops, key=lambda s: s["lon"])
+    best = min((_two_opt(_nearest_neighbour(stops, s)) for s in stops), key=_length)
+    return best if best[0]["lon"] <= best[-1]["lon"] else best[::-1]
 
 
 def plan_route(ranked: list[dict], n_dates: int) -> dict:
