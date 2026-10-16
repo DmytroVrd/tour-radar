@@ -4,8 +4,73 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tour Radar</title>
+  <meta name="description" content="Plan a tour where your sound already has an audience. Powered by Qloo taste data.">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <link href="/static/css/app.css" rel="stylesheet">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 </head>
 <body>
-  <h1>Tour Radar</h1>
+  <div id="map" aria-label="Tour map"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <header class="brand">
+    <div class="brand-mark" aria-hidden="true"><span></span></div>
+    <div>
+      <h1>Tour Radar</h1>
+      <p>Tour where your sound already has an audience</p>
+    </div>
+  </header>
+
+  <section class="composer" aria-label="Plan a tour">
+    <label class="composer-label" for="artist-input">Who do you sound like?</label>
+    <div class="artist-field" id="artist-field">
+      <div class="chips" id="chips"></div>
+      <input id="artist-input" type="text" placeholder="Type an artist and press Enter" autocomplete="off">
+    </div>
+    <div class="composer-row">
+      <label class="dates">
+        <span>Dates</span>
+        <select id="dates">
+          <option>4</option><option>6</option><option selected>8</option><option>10</option><option>12</option>
+        </select>
+      </label>
+      <span class="region-pill">United States</span>
+      <button class="scan-btn" id="scan-btn" type="button">
+        <span class="scan-btn-dot" aria-hidden="true"></span>Scan the map
+      </button>
+    </div>
+    <div class="examples">
+      <span>Try</span>
+      <button type="button" data-example="Phoebe Bridgers, boygenius">Phoebe Bridgers + boygenius</button>
+      <button type="button" data-example="Khruangbin">Khruangbin</button>
+      <button type="button" data-example="Turnstile">Turnstile</button>
+    </div>
+  </section>
+
+  <aside class="panel" id="panel" aria-label="Tour">
+    <div class="panel-head">
+      <h2>The tour</h2>
+      <span class="panel-sub" id="tour-sub">Waiting for a sound</span>
+    </div>
+    <ol class="tour-list" id="tour-list">
+      <li class="tour-empty">Name up to three artists you sound like. Tour Radar maps where that taste is concentrated and routes a tour through it.</li>
+    </ol>
+    <div class="tour-total" id="tour-total" hidden></div>
+  </aside>
+
+  <div class="legend" aria-hidden="true">
+    <span>Taste affinity</span>
+    <div class="legend-ramp"></div>
+    <div class="legend-scale"><span>lower</span><span>higher</span></div>
+  </div>
+
+  <div class="mode-badge" id="mode-badge" hidden>Mock data · development</div>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>
