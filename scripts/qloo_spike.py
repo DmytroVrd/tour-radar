@@ -36,6 +36,7 @@ timings: list[float] = []
 
 
 def call(tag: str, path: str, params: dict) -> dict | None:
+    time.sleep(0.25)  # the hackathon key allows 5 requests per second
     t0 = time.perf_counter()
     try:
         r = client.get(path, params=params)
@@ -64,6 +65,17 @@ def spread(values: list[float]) -> str:
             f"median={statistics.median(values):.4f} stdev={statistics.pstdev(values):.4f}")
 
 
+def rank_corr(a: list[float], b: list[float]) -> float:
+    """Spearman correlation without scipy."""
+    def ranks(v):
+        order = sorted(range(len(v)), key=v.__getitem__)
+        r = [0.0] * len(v)
+        for i, j in enumerate(order):
+            r[j] = i
+        return r
+    return statistics.correlation(ranks(a), ranks(b)) if len(a) > 2 else float("nan")
+
+
 print("\n1) Resolve artists with /search")
 ids = {}
 for name in ["Phoebe Bridgers", "Khruangbin", "Turnstile"]:
@@ -86,7 +98,10 @@ for city in ["Portland", "New York"]:
         pts = data.get("results", {}).get("heatmap", [])
         print(f"      affinity   {spread([p['query']['affinity'] for p in pts])}")
         print(f"      popularity {spread([p['query']['popularity'] for p in pts])}")
-        print(f"      locality   {data.get('query', {}).get('localities', {}).get('filter', {}).get('name')}")
+        print(f"      affinity~popularity rank correlation {rank_corr([p['query']['affinity'] for p in pts], [p['query']['popularity'] for p in pts]):.3f}")
+        loc = data.get("query", {}).get("localities", {}).get("filter")
+        loc = loc[0] if isinstance(loc, list) and loc else loc
+        print(f"      locality   {(loc or {}).get('disambiguation')}")
 
 print("\n3) Ranking cities")
 print("   3a) one region-wide heatmap (WKT polygon of the US)")
