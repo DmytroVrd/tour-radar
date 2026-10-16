@@ -15,3 +15,6 @@ __pycache__/
 
 # local API response cache
 .cache/
+
+# local browser tooling output
+.playwright-mcp/
