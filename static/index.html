@@ -25,12 +25,14 @@
     </div>
   </header>
 
-  <section class="composer" aria-label="Plan a tour">
+  <section class="composer" id="composer" aria-label="Plan a tour">
     <label class="composer-label" for="artist-input">Who do you sound like?</label>
     <div class="artist-field" id="artist-field">
       <div class="chips" id="chips"></div>
-      <input id="artist-input" type="text" placeholder="Type an artist and press Enter" autocomplete="off">
+      <input id="artist-input" type="text" placeholder="Type an artist" autocomplete="off"
+             role="combobox" aria-expanded="false" aria-controls="suggest" aria-autocomplete="list">
     </div>
+    <ul class="suggest" id="suggest" role="listbox" hidden></ul>
     <div class="composer-row">
       <label class="dates">
         <span>Dates</span>
@@ -40,30 +42,58 @@
       </label>
       <span class="region-pill">United States</span>
       <button class="scan-btn" id="scan-btn" type="button">
-        <span class="scan-btn-dot" aria-hidden="true"></span>Scan the map
+        <span class="scan-btn-dot" aria-hidden="true"></span><span class="scan-btn-text">Plan my tour</span>
       </button>
     </div>
-    <div class="examples">
-      <span>Try</span>
-      <button type="button" data-example="Phoebe Bridgers, boygenius">Phoebe Bridgers + boygenius</button>
-      <button type="button" data-example="Khruangbin">Khruangbin</button>
-      <button type="button" data-example="Turnstile">Turnstile</button>
+    <div class="examples" id="examples">
+      <span>Instant examples</span>
     </div>
   </section>
 
-  <aside class="panel" id="panel" aria-label="Tour">
-    <div class="panel-head">
-      <h2>The tour</h2>
-      <span class="panel-sub" id="tour-sub">Waiting for a sound</span>
+  <aside class="panel" id="panel" aria-label="Agent and tour">
+    <div class="panel-tabs" role="tablist">
+      <button class="tab is-active" role="tab" data-tab="agent" aria-selected="true">Agent</button>
+      <button class="tab" role="tab" data-tab="tour" aria-selected="false" disabled>Tour</button>
+      <span class="run-badge" id="run-badge" hidden></span>
     </div>
-    <ol class="tour-list" id="tour-list">
-      <li class="tour-empty">Name up to three artists you sound like. Tour Radar maps where that taste is concentrated and routes a tour through it.</li>
-    </ol>
-    <div class="tour-total" id="tour-total" hidden></div>
+
+    <section class="tab-body" id="tab-agent">
+      <ol class="trace" id="trace">
+        <li class="trace-empty">
+          <strong>How it works</strong>
+          Name up to three artists you sound like. The agent asks Qloo where people with that taste are
+          over-represented, compares it with a mainstream audience, routes a tour through the strongest
+          cities, and picks neighbourhoods and venues in each one.
+        </li>
+      </ol>
+      <footer class="trace-stats" id="trace-stats" hidden></footer>
+    </section>
+
+    <section class="tab-body" id="tab-tour" hidden>
+      <div class="tour-scroll">
+        <header class="tour-head">
+          <h2 id="tour-title">The tour</h2>
+          <p id="tour-headline"></p>
+        </header>
+        <div class="audience" id="audience" hidden></div>
+        <ol class="tour-list" id="tour-list"></ol>
+        <p class="footnote">
+          Taste scores come from Qloo heatmaps: 60% how strongly this taste shows up around a city, 40% how much it
+          beats a mainstream audience there. They show where people with this taste are over-represented, not counts of fans.
+        </p>
+      </div>
+      <footer class="tour-actions">
+        <span id="tour-total"></span>
+        <button type="button" class="ghost-btn" id="copy-sheet">Copy tour sheet</button>
+        <button type="button" class="ghost-btn" id="download-csv">CSV</button>
+      </footer>
+    </section>
+
+    <section class="tab-body city-card" id="city-card" hidden></section>
   </aside>
 
   <div class="legend" aria-hidden="true">
-    <span>Taste affinity</span>
+    <span id="legend-title">Taste over-representation</span>
     <div class="legend-ramp"></div>
     <div class="legend-scale"><span>lower</span><span>higher</span></div>
   </div>
