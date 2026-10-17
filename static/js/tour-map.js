@@ -70,6 +70,7 @@ export class TourMap {
     this.map.touchZoomRotate.disableRotation();
     this.map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
     this.map.on("moveend", () => this._layoutLabels());
+    this.map.on("move", () => this._layoutHotspotLabels());
     this.ready = new Promise((resolve) => this.map.on("load", () => { this._addLayers(); resolve(); }));
   }
 
@@ -105,12 +106,13 @@ export class TourMap {
       source: "city-heat",
       minzoom: 8,
       paint: {
-        "heatmap-weight": ["^", ["get", "v"], 2.5],
+        "heatmap-weight": ["^", ["get", "v"], 3],
         // Radius doubles per zoom level so it tracks ground distance (~300 m).
         "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 9, 5, 14, 160],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 1.4, 14, 0.8],
+        // Bright when you first drop into the city, calmer as you read the streets.
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 1.1, 12, 0.7, 14, 0.45],
         "heatmap-color": HEAT_RAMP,
-        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9.5, 0.85],
+        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9.5, 0.85, 12, 0.6, 14, 0.38],
       },
     });
 
@@ -247,7 +249,7 @@ export class TourMap {
     const span = Math.max(top - cut, 1e-6);
     const strong = cells.filter((c) => c[2] >= cut).map(([lon, lat, v]) => [lon, lat, (v - cut) / span]);
     this.map.getSource("taste").setData(points(strong));
-    this.map.setPaintProperty("taste-heat", "heatmap-opacity", strong.length ? 0.9 : 0);
+    this.map.setPaintProperty("taste-heat", "heatmap-opacity", strong.length ? ["interpolate", ["linear"], ["zoom"], 4, 0.9, 6, 0.7, 7.5, 0] : 0);
   }
 
   reset() {
@@ -467,6 +469,7 @@ export class TourMap {
       el.type = "button";
       el.className = "hotspot-label";
       el.addEventListener("click", () => onHotspot?.(i));
+      el.dataset.rank = h.rank;
       el.innerHTML = `<span class="hotspot-rank">#${h.rank}</span><span>${esc(h.name || "Unnamed pocket")}</span>`;
       this.cityMarkers.push(new maplibregl.Marker({ element: el, anchor: "bottom", offset: [0, -26] })
         .setLngLat([h.lon, h.lat]).addTo(this.map));
@@ -496,7 +499,26 @@ export class TourMap {
     profile.venues.forEach((v) => v.lat != null && b.extend([v.lon, v.lat]));
     this.map.fitBounds(b, { padding: { ...this.padding, top: this.padding.top + 40, bottom: this.padding.bottom + 30 },
       maxZoom: 12.3, duration: 2200, essential: true, curve: 1.6 });
-    requestAnimationFrame(() => this.cityMarkers.forEach((m) => m.getElement().classList.add("is-visible")));
+    requestAnimationFrame(() => {
+      this.cityMarkers.forEach((m) => m.getElement().classList.add("is-visible"));
+      this._layoutHotspotLabels();
+    });
+  }
+
+  // Hotspot labels are drawn in rank order; one that would overlap a stronger
+  // hotspot's label is hidden until the camera is close enough to separate them.
+  _layoutHotspotLabels() {
+    if (!this.inCity) return;
+    const labels = this.cityMarkers.map((m) => m.getElement()).filter((el) => el.classList.contains("hotspot-label"))
+      .sort((a, b) => a.dataset.rank - b.dataset.rank);
+    const shown = [];
+    labels.forEach((el) => {
+      el.classList.remove("is-collapsed");
+      const r = el.getBoundingClientRect();
+      const hit = shown.some((o) => r.left < o.right + 6 && r.right > o.left - 6 && r.top < o.bottom + 4 && r.bottom > o.top - 4);
+      el.classList.toggle("is-collapsed", hit);
+      if (!hit) shown.push(r);
+    });
   }
 
   focusPoint(p, zoom = 13.2) {

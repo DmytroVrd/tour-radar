@@ -593,6 +593,22 @@ html, body {
   cursor: pointer;
 }
 .hotspot-label:hover { color: #fff; }
+.hotspot-label.is-collapsed { visibility: hidden; }
+
+/* ---- scrollbars ---- */
+.trace, .tour-scroll, .cc-scroll, .draft-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 179, 71, 0.32) transparent;
+}
+.trace::-webkit-scrollbar, .tour-scroll::-webkit-scrollbar, .cc-scroll::-webkit-scrollbar, .draft-body::-webkit-scrollbar { width: 8px; }
+.trace::-webkit-scrollbar-track, .tour-scroll::-webkit-scrollbar-track, .cc-scroll::-webkit-scrollbar-track, .draft-body::-webkit-scrollbar-track { background: transparent; }
+.trace::-webkit-scrollbar-thumb, .tour-scroll::-webkit-scrollbar-thumb, .cc-scroll::-webkit-scrollbar-thumb, .draft-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 179, 71, 0.28);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+.trace::-webkit-scrollbar-thumb:hover, .tour-scroll::-webkit-scrollbar-thumb:hover, .cc-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 179, 71, 0.5); }
 .hotspot-rank { color: #1a0d02; background: var(--amber); border-radius: 4px; padding: 1px 4px; font-size: 12px; text-shadow: none; }
 .venue-pin {
   display: flex;
