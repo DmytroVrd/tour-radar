@@ -407,25 +407,17 @@ function openCity(cityId) {
 
       <section class="cc-block">
         <div class="cc-label"><span>Where the taste concentrates</span><span class="src src-qloo">Qloo</span></div>
-        <ol class="hotspots">${prof.hotspots.map((h) => `
-          <li><span class="hs-rank">#${h.rank}</span><span class="hs-name">${esc(h.name || "Unnamed pocket")}</span>
-          <span class="hs-val">${pct(h.taste)}</span></li>`).join("")}</ol>
-        <p class="cc-note">Glow = this audience's heatmap affinity, adjusted against a mainstream audience in the same blocks.</p>
+        <ol class="hotspots">${prof.hotspots.map((h, i) => `
+          <li><button type="button" data-hotspot="${i}">
+            <span class="hs-rank">#${h.rank}</span><span class="hs-name">${esc(h.name || "Unnamed pocket")}</span>
+            <span class="hs-val">${pct(h.taste)}</span></button></li>`).join("")}</ol>
+        <p class="cc-note">These are neighbourhoods, not venues: the blocks where this taste is most over-represented
+          compared with a mainstream audience. Good places to play, poster and stay. Tap one to see the venues around it.</p>
       </section>
 
       <section class="cc-block">
-        <div class="cc-label"><span>Venues this audience favours</span><span class="src src-qloo">Qloo</span></div>
-        <ul class="venues">${venues.map((v) => `
-          <li class="${picked.has(v.id) ? "is-picked" : ""}">
-            <button type="button" data-venue="${esc(v.id)}">
-              <span class="v-name">${esc(v.name)}${picked.has(v.id) ? `<em>Agent pick</em>` : ""}</span>
-              <span class="v-meta">${esc([v.neighborhood, v.km_to_hotspot != null ? `${v.km_to_hotspot} km from hotspot` : null].filter(Boolean).join(" · "))}</span>
-              <span class="v-addr">${esc(v.address || "")}</span>
-            </button>
-            <span class="v-aff">${pct(v.affinity)}</span>
-            ${picked.has(v.id) && stop ? `<button type="button" class="ghost-btn draft-btn" data-draft="${esc(v.id)}">Draft booking email</button>
-            <div class="draft" hidden></div>` : ""}
-          </li>`).join("")}</ul>
+        <div class="cc-label"><span id="venues-title">Venues this audience favours</span><span class="src src-qloo">Qloo</span></div>
+        <ul class="venues" id="venues"></ul>
       </section>
 
       ${prof.spots.length ? `<section class="cc-block">
@@ -438,13 +430,18 @@ function openCity(cityId) {
   showTab("city");
   els.legendTitle.textContent = `Neighbourhood taste · ${city.name}`;
   els.cityCard.querySelector("#city-back").addEventListener("click", closeCity);
-  els.cityCard.querySelectorAll("[data-venue]").forEach((b) => b.addEventListener("click", () => {
-    tourMap.focusVenue(prof.venues.find((v) => v.id === b.dataset.venue));
-  }));
-  els.cityCard.querySelectorAll("[data-draft]").forEach((b) => b.addEventListener("click", () => {
-    draftEmail(b, prof.venues.find((v) => v.id === b.dataset.draft), city, stop, order);
-  }));
+  const ctx = { prof, picked, city, stop, order };
+  renderVenues(ctx, null);
+  const selectHotspot = (i) => {
+    const h = prof.hotspots[i];
+    const same = ctx.anchor === h;
+    els.cityCard.querySelectorAll("[data-hotspot]").forEach((b) => b.classList.toggle("is-active", !same && +b.dataset.hotspot === i));
+    renderVenues(ctx, same ? null : h);
+    if (!same) tourMap.focusPoint(h);
+  };
+  els.cityCard.querySelectorAll("[data-hotspot]").forEach((b) => b.addEventListener("click", () => selectHotspot(+b.dataset.hotspot)));
   tourMap.enterCity(prof, {
+    onHotspot: selectHotspot,
     venues: venues.filter((v) => picked.has(v.id)),
     onVenue: (id) => {
       const row = els.cityCard.querySelector(`[data-venue="${CSS.escape(id)}"]`);
@@ -455,8 +452,56 @@ function openCity(cityId) {
   });
 }
 
+function kmBetween(a, b) {
+  const r = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * r;
+  const dLon = (b.lon - a.lon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
+const hostOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return null; } };
+const prettyPhone = (p) => (/^\+1\d{10}$/.test(p) ? `(${p.slice(2, 5)}) ${p.slice(5, 8)}-${p.slice(8)}` : p);
+
+// Venue list for the city card, optionally re-sorted around one hotspot.
+function renderVenues(ctx, anchor) {
+  ctx.anchor = anchor;
+  const { prof, picked, city, stop, order } = ctx;
+  const list = [...prof.venues];
+  if (anchor) list.sort((a, b) => kmBetween(anchor, a) - kmBetween(anchor, b));
+  else list.sort((a, b) => picked.has(b.id) - picked.has(a.id));
+  $("venues-title").textContent = anchor ? `Venues near ${anchor.name || "this pocket"}` : "Venues this audience favours";
+  $("venues").innerHTML = list.map((v) => {
+    const where = anchor && v.lat != null
+      ? `${kmBetween(anchor, v).toFixed(1)} km from ${anchor.name || "this pocket"}`
+      : v.km_to_hotspot != null ? `${v.km_to_hotspot} km from a hotspot` : null;
+    const host = v.website && hostOf(v.website);
+    return `
+      <li class="${picked.has(v.id) ? "is-picked" : ""}">
+        <button type="button" data-venue="${esc(v.id)}">
+          <span class="v-name">${esc(v.name)}${picked.has(v.id) ? `<em>Agent pick</em>` : ""}</span>
+          <span class="v-meta">${esc([v.neighborhood, where].filter(Boolean).join(" · "))}</span>
+          <span class="v-addr">${esc(v.address || "")}</span>
+        </button>
+        <span class="v-aff">${pct(v.affinity)}</span>
+        <div class="v-actions">
+          ${host ? `<a href="${esc(v.website)}" target="_blank" rel="noopener noreferrer">${esc(host)}</a>` : ""}
+          ${v.phone ? `<a href="tel:${esc(v.phone)}">${esc(prettyPhone(v.phone))}</a>` : ""}
+          <button type="button" class="ghost-btn draft-btn" data-draft="${esc(v.id)}">Draft booking email</button>
+        </div>
+        <div class="draft" hidden></div>
+      </li>`;
+  }).join("");
+  $("venues").querySelectorAll("[data-venue]").forEach((b) => b.addEventListener("click", () => {
+    tourMap.focusVenue(prof.venues.find((v) => v.id === b.dataset.venue));
+  }));
+  $("venues").querySelectorAll("[data-draft]").forEach((b) => b.addEventListener("click", () => {
+    draftEmail(b, prof.venues.find((v) => v.id === b.dataset.draft), city, stop, order);
+  }));
+}
+
 async function draftEmail(btn, venue, city, stop, order) {
-  const box = btn.nextElementSibling;
+  const box = btn.closest("li").querySelector(".draft");
   btn.disabled = true;
   btn.textContent = "Drafting…";
   try {
@@ -468,11 +513,11 @@ async function draftEmail(btn, venue, city, stop, order) {
         city: `${city.name}, ${city.state}`,
         venue: venue.name,
         venue_address: venue.address || "",
-        neighborhood: stop.neighborhood || venue.neighborhood || "",
+        neighborhood: venue.neighborhood || stop?.neighborhood || "",
         taste_score: pct(city.score),
         stop_number: order + 1,
-        total_stops: state.plan.stops.length,
-        why: stop.why,
+        total_stops: state.plan?.stops.length || 1,
+        why: stop?.why || "",
       }),
     });
     const data = await res.json();

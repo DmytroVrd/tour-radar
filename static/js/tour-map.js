@@ -105,10 +105,10 @@ export class TourMap {
       source: "city-heat",
       minzoom: 8,
       paint: {
-        "heatmap-weight": ["^", ["get", "v"], 4],
+        "heatmap-weight": ["^", ["get", "v"], 2.5],
         // Radius doubles per zoom level so it tracks ground distance (~300 m).
         "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 9, 5, 14, 160],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 0.8, 14, 0.3],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 1.4, 14, 0.8],
         "heatmap-color": HEAT_RAMP,
         "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9.5, 0.85],
       },
@@ -297,6 +297,8 @@ export class TourMap {
   }
 
   async focus(stops, duration = 1600) {
+    // A city card is open: queued tour animations must not pull the camera out.
+    if (this.inCity) return;
     const b = new maplibregl.LngLatBounds();
     stops.forEach((s) => b.extend([s.lon, s.lat]));
     this.map.fitBounds(b, { padding: this.padding, duration, maxZoom: 6.2, essential: true });
@@ -380,7 +382,7 @@ export class TourMap {
     this.markers = stops.map((stop, i) => {
       const el = document.createElement("button");
       el.type = "button";
-      el.className = "stop-label";
+      el.className = `stop-label ${this.inCity ? "is-hidden" : ""}`;
       el.setAttribute("aria-label", `Open ${stop.name}`);
       el.innerHTML = `
         <span class="stop-num">${String(i + 1).padStart(2, "0")}</span>
@@ -449,7 +451,7 @@ export class TourMap {
 
   // --- city drill-down -----------------------------------------------------------
 
-  enterCity(profile, { venues = [], onVenue } = {}) {
+  enterCity(profile, { venues = [], onVenue, onHotspot } = {}) {
     this.inCity = true;
     this.markers.forEach((m) => m.getElement().classList.add("is-hidden"));
     this._clearCityMarkers();
@@ -460,9 +462,11 @@ export class TourMap {
       features: hotspots.map((h) => ({ type: "Feature", geometry: { type: "Point", coordinates: [h.lon, h.lat] }, properties: {} })),
     });
 
-    hotspots.forEach((h) => {
-      const el = document.createElement("div");
+    hotspots.forEach((h, i) => {
+      const el = document.createElement("button");
+      el.type = "button";
       el.className = "hotspot-label";
+      el.addEventListener("click", () => onHotspot?.(i));
       el.innerHTML = `<span class="hotspot-rank">#${h.rank}</span><span>${esc(h.name || "Unnamed pocket")}</span>`;
       this.cityMarkers.push(new maplibregl.Marker({ element: el, anchor: "bottom", offset: [0, -26] })
         .setLngLat([h.lon, h.lat]).addTo(this.map));
@@ -493,6 +497,10 @@ export class TourMap {
     this.map.fitBounds(b, { padding: { ...this.padding, top: this.padding.top + 40, bottom: this.padding.bottom + 30 },
       maxZoom: 12.3, duration: 2200, essential: true, curve: 1.6 });
     requestAnimationFrame(() => this.cityMarkers.forEach((m) => m.getElement().classList.add("is-visible")));
+  }
+
+  focusPoint(p, zoom = 13.2) {
+    this.map.easeTo({ center: [p.lon, p.lat], zoom: Math.max(this.map.getZoom(), zoom), duration: 1000 });
   }
 
   focusVenue(v) {

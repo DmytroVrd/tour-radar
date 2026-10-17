@@ -479,7 +479,24 @@ html, body {
 .cc-collab b { color: var(--ink); font-weight: 600; margin-right: 4px; }
 .cc-note { margin: 8px 0 0; font-size: 11px; color: var(--faint); line-height: 1.45; }
 .hotspots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.hotspots li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 8px; background: rgba(255, 140, 40, 0.06); }
+.hotspots button {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 140, 40, 0.06);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.hotspots button:hover { background: rgba(255, 140, 40, 0.12); }
+.hotspots button.is-active { border-color: rgba(255, 179, 71, 0.6); background: rgba(255, 140, 40, 0.16); }
 .hs-rank { font-family: var(--display); font-weight: 900; color: var(--amber); }
 .hs-name { font-weight: 500; }
 .hs-val { color: var(--hot); font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -492,7 +509,10 @@ html, body {
 .v-meta { font-size: 11.5px; color: var(--muted); }
 .v-addr { font-size: 11px; color: var(--faint); }
 .v-aff { padding-top: 10px; font-size: 13px; color: var(--hot); font-variant-numeric: tabular-nums; }
-.draft-btn { grid-column: 1 / -1; justify-self: start; margin: 0 0 10px; }
+.v-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: -2px 0 10px 2px; font-size: 11.5px; }
+.v-actions a { color: #9fd0ff; text-decoration: none; }
+.v-actions a:hover { text-decoration: underline; }
+.draft-btn { margin-left: auto; padding: 4px 9px; font-size: 11.5px; }
 .draft { grid-column: 1 / -1; margin: 0 0 12px; display: grid; gap: 6px; }
 .draft[hidden] { display: none; }
 .draft-head { display: flex; justify-content: space-between; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
@@ -566,9 +586,13 @@ html, body {
   text-transform: uppercase;
   color: var(--hot);
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.95), 0 0 3px #000;
-  pointer-events: none;
   white-space: nowrap;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
 }
+.hotspot-label:hover { color: #fff; }
 .hotspot-rank { color: #1a0d02; background: var(--amber); border-radius: 4px; padding: 1px 4px; font-size: 12px; text-shadow: none; }
 .venue-pin {
   display: flex;
