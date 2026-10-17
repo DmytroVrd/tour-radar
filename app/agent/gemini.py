@@ -91,7 +91,12 @@ LABELS = {
     "submit_plan": "Checking the plan against Qloo data",
 }
 
-RETRYABLE = (429, 500, 503, 504)
+RETRYABLE = (500, 503, 504)
+QUOTA_COOLDOWN_S = 60.0
+
+# Models that recently answered 429 are skipped until this monotonic time, so a
+# run does not keep knocking on an exhausted free-tier quota every turn.
+_cooldown: dict[str, float] = {}
 
 
 class GeminiAgent:
@@ -104,7 +109,9 @@ class GeminiAgent:
 
     def _generate(self, contents: list[types.Content], config: types.GenerateContentConfig):
         last: Exception | None = None
-        for model in self.models:
+        now = time.monotonic()
+        ready = [m for m in self.models if _cooldown.get(m, 0) <= now] or self.models
+        for model in ready:
             for attempt in range(2):
                 try:
                     self.llm_calls += 1
@@ -113,9 +120,14 @@ class GeminiAgent:
                     return resp
                 except genai_errors.APIError as exc:
                     last = exc
-                    if getattr(exc, "code", None) not in RETRYABLE:
+                    code = getattr(exc, "code", None)
+                    if code == 429:
+                        _cooldown[model] = time.monotonic() + QUOTA_COOLDOWN_S
+                        log.warning("Gemini %s is over quota; cooling down", model)
+                        break
+                    if code not in RETRYABLE:
                         raise
-                    log.warning("Gemini %s failed with %s (attempt %d)", model, exc.code, attempt + 1)
+                    log.warning("Gemini %s failed with %s (attempt %d)", model, code, attempt + 1)
                     time.sleep(1.5 * (attempt + 1))
         raise RuntimeError(f"All Gemini models are unavailable right now: {last}")
 
