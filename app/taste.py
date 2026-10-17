@@ -13,6 +13,7 @@ not win by default and a tiny one does not win on noise alone.
 
 from __future__ import annotations
 
+import math
 import statistics
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
@@ -169,6 +170,19 @@ def _place(e: dict) -> dict:
     }
 
 
+def _side_name(city: dict, lat: float, lon: float) -> str:
+    """Last-resort label: which part of the city a pocket sits in."""
+    if haversine_km(city["lat"], city["lon"], lat, lon) < 2.0:
+        return f"Central {city['name']}"
+    dy = lat - city["lat"]
+    dx = (lon - city["lon"]) * math.cos(math.radians(city["lat"]))
+    if abs(dy) >= abs(dx):
+        side = "North" if dy > 0 else "South"
+    else:
+        side = "East" if dx > 0 else "West"
+    return f"{side} {city['name']}"
+
+
 def _nearest_name(lat: float, lon: float, places: list[dict], max_km: float = 4.0) -> str | None:
     best, best_d = None, max_km
     for p in places:
@@ -217,6 +231,8 @@ def city_profile(client: QlooClient, entity_ids: list[str], city: dict) -> dict:
         name = _nearest_name(h["lat"], h["lon"], named)
         if name is None and not client.is_mock:
             name = reverse_neighborhood(h["lat"], h["lon"])
+        if name is None:
+            name = _side_name(city, h["lat"], h["lon"])
         if name is not None and name in seen_names:
             continue
         seen_names.add(name)

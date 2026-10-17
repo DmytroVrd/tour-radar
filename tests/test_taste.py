@@ -54,3 +54,12 @@ def test_taste_profile_excludes_input_artists():
     prof = taste_profile(QlooClient(MockSource()), [PHOEBE])
     assert prof["brands"] and prof["destinations"] and prof["similar_artists"]
     assert PHOEBE not in {a["id"] for a in prof["similar_artists"]}
+
+
+def test_side_name_falls_back_to_compass_side():
+    from app.taste import _side_name
+
+    denver = find_city("denver")
+    assert _side_name(denver, denver["lat"], denver["lon"] + 0.003) == "Central Denver"
+    assert _side_name(denver, denver["lat"] + 0.1, denver["lon"]) == "North Denver"
+    assert _side_name(denver, denver["lat"], denver["lon"] - 0.2) == "West Denver"

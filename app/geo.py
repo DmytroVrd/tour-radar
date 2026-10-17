@@ -107,7 +107,7 @@ def reverse_neighborhood(lat: float, lon: float) -> str | None:
             addr = resp.json().get("address", {}) if resp.status_code == 200 else {}
         except (httpx.HTTPError, ValueError):
             return None
-        name = next((addr[k] for k in ("neighbourhood", "suburb", "quarter", "city_district", "hamlet")
+        name = next((addr[k] for k in ("neighbourhood", "suburb", "quarter", "city_district", "residential", "hamlet")
                      if addr.get(k)), None)
         cache[key] = name
         path.write_text(json.dumps(cache, indent=0), encoding="utf-8")
