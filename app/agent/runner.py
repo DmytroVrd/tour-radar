@@ -14,6 +14,7 @@ Event types (all JSON objects with a ``type``):
 from __future__ import annotations
 
 import itertools
+import logging
 import queue
 import threading
 import time
@@ -23,6 +24,8 @@ from app.agent.gemini import LABELS, GeminiAgent
 from app.agent.tools import TourTools, pct
 from app.config import settings
 from app.qloo import QlooClient, get_client
+
+log = logging.getLogger(__name__)
 
 
 class CountingClient(QlooClient):
@@ -109,6 +112,7 @@ def _run(artists: list[str], n_dates: int, region: str, started: float) -> Itera
         else:
             raise RuntimeError("The planning agent is not configured on this server.")
     except Exception as exc:  # surfaced to the UI as a designed error state
+        log.exception("Agent run failed")
         yield {"type": "error", "message": _friendly(exc)}
         return
 
