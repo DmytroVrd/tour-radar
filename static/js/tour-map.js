@@ -89,9 +89,9 @@ export class TourMap {
       source: "taste",
       maxzoom: 9,
       paint: {
-        "heatmap-weight": ["^", ["get", "v"], 3],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 1.0, 6, 1.7],
-        "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 20, 5, 40, 7, 70],
+        "heatmap-weight": ["^", ["get", "v"], 2],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 1.1, 6, 1.6],
+        "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 3, 13, 6, 90],
         "heatmap-color": HEAT_RAMP,
         "heatmap-opacity": 0,
         "heatmap-opacity-transition": { duration: 1800 },
@@ -216,6 +216,9 @@ export class TourMap {
       paint: { "circle-radius": 3.5, "circle-color": "#ffffff", "circle-opacity": fadeInCity(1) },
     });
 
+    // Street and neighbourhood names stay readable on top of the glow.
+    m.moveLayer("place-labels");
+
     m.on("click", "city-hit", (e) => {
       const id = e.features?.[0]?.properties?.id;
       if (id && !this.inCity) this.onCityClick?.(id);
@@ -234,9 +237,17 @@ export class TourMap {
     this._loop();
   }
 
-  setTaste(cells) {
-    this.map.getSource("taste").setData(points(cells));
-    this.map.setPaintProperty("taste-heat", "heatmap-opacity", cells.length ? 0.85 : 0);
+  // Only the strongest slice of cells glows; otherwise thousands of overlapping
+  // kernels wash the whole country out. Values are rescaled to 0..1 above it.
+  setTaste(cells, { keep = 0.35 } = {}) {
+    this.tasteCells = cells;
+    const sorted = cells.map((c) => c[2]).sort((a, b) => a - b);
+    const cut = sorted[Math.floor(sorted.length * (1 - keep))] ?? 0;
+    const top = sorted[sorted.length - 1] ?? 1;
+    const span = Math.max(top - cut, 1e-6);
+    const strong = cells.filter((c) => c[2] >= cut).map(([lon, lat, v]) => [lon, lat, (v - cut) / span]);
+    this.map.getSource("taste").setData(points(strong));
+    this.map.setPaintProperty("taste-heat", "heatmap-opacity", strong.length ? 0.9 : 0);
   }
 
   reset() {
