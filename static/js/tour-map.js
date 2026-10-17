@@ -229,7 +229,7 @@ export class TourMap {
 
   // --- national view ----------------------------------------------------------
 
-  setCandidates(cities, { glow = 0.12 } = {}) {
+  setCandidates(cities, { glow = 0.3 } = {}) {
     this.cities.clear();
     for (const city of cities) {
       this.cities.set(city.id, { city, glow, from: glow, target: glow, start: 0, dur: 1, chosen: false, affinity: 0.15 });
@@ -261,7 +261,7 @@ export class TourMap {
     this.map.setPaintProperty("taste-heat", "heatmap-opacity", 0);
     for (const s of this.cities.values()) {
       s.chosen = false;
-      this._animateGlow(s, 0.08, 400, 0);
+      this._animateGlow(s, 0.2, 400, 0);
     }
     this.map.fitBounds(US_BOUNDS, { padding: this.padding, duration: 900 });
   }
