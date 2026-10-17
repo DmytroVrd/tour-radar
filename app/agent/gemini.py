@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from typing import Callable, Iterator
 
+import httpx
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
@@ -96,11 +98,30 @@ LABELS = {
 }
 
 RETRYABLE = (500, 503, 504)
-QUOTA_COOLDOWN_S = 60.0
+DEFAULT_COOLDOWN_S = 30.0
+MAX_QUOTA_WAIT_S = 25.0
 
-# Models that recently answered 429 are skipped until this monotonic time, so a
-# run does not keep knocking on an exhausted free-tier quota every turn.
+# Free-tier keys allow only a few requests per minute per model. A model that
+# answers 429 is skipped until Google's own retry delay has passed.
 _cooldown: dict[str, float] = {}
+
+
+class AllModelsBusy(RuntimeError):
+    def __init__(self, wait_s: float, last: Exception | None):
+        super().__init__(f"All Gemini models are over quota for {wait_s:.0f}s more: {last}")
+        self.wait_s = wait_s
+
+
+def _retry_delay(exc: Exception) -> float:
+    match = re.search(r"retry in ([0-9.]+)s", str(exc)) or re.search(r"'retryDelay': '([0-9.]+)s'", str(exc))
+    return float(match.group(1)) + 1.0 if match else DEFAULT_COOLDOWN_S
+
+
+def _config_for(model: str, config: types.GenerateContentConfig | None):
+    # thinking_level is a Gemini 3 setting; older models reject it.
+    if config is not None and config.thinking_config is not None and model.startswith("gemini-2"):
+        return config.model_copy(update={"thinking_config": None})
+    return config
 
 
 class GeminiAgent:
@@ -111,29 +132,58 @@ class GeminiAgent:
         self.llm_calls = 0
         self.model_used: str | None = None
 
-    def generate(self, contents: list[types.Content], config: types.GenerateContentConfig):
+    def generate(self, contents: list[types.Content], config: types.GenerateContentConfig | None):
         last: Exception | None = None
-        now = time.monotonic()
-        ready = [m for m in self.models if _cooldown.get(m, 0) <= now] or self.models
+        ready = [m for m in self.models if _cooldown.get(m, 0) <= time.monotonic()]
         for model in ready:
             for attempt in range(2):
                 try:
                     self.llm_calls += 1
-                    resp = self.client.models.generate_content(model=model, contents=contents, config=config)
+                    resp = self.client.models.generate_content(model=model, contents=contents,
+                                                               config=_config_for(model, config))
                     self.model_used = model
                     return resp
                 except genai_errors.APIError as exc:
                     last = exc
                     code = getattr(exc, "code", None)
                     if code == 429:
-                        _cooldown[model] = time.monotonic() + QUOTA_COOLDOWN_S
-                        log.warning("Gemini %s is over quota; cooling down", model)
+                        _cooldown[model] = time.monotonic() + _retry_delay(exc)
+                        log.warning("Gemini %s is over quota; skipping it for now", model)
+                        break
+                    if code in (400, 404):
+                        # Retired models answer 404; some reject a config with 400. Try the next one.
+                        log.warning("Gemini %s rejected the request: %s", model, str(exc)[:160])
                         break
                     if code not in RETRYABLE:
                         raise
                     log.warning("Gemini %s failed with %s (attempt %d)", model, code, attempt + 1)
                     time.sleep(1.5 * (attempt + 1))
+                except httpx.TransportError as exc:
+                    last = exc
+                    log.warning("Gemini %s connection dropped (attempt %d)", model, attempt + 1)
+                    time.sleep(1.0)
+        soonest = min((_cooldown.get(m, 0) for m in self.models), default=0) - time.monotonic()
+        if soonest > 0:
+            raise AllModelsBusy(soonest, last)
         raise RuntimeError(f"All Gemini models are unavailable right now: {last}")
+
+    def generate_patiently(self, contents, config) -> Iterator:
+        """Like generate, but waits out short free-tier rate limits.
+
+        Yields trace events while waiting and finally ``("response", resp)``.
+        """
+        waited = 0.0
+        while True:
+            try:
+                yield ("response", self.generate(contents, config))
+                return
+            except AllModelsBusy as busy:
+                if waited + busy.wait_s > MAX_QUOTA_WAIT_S * 2:
+                    raise
+                pause = min(busy.wait_s, MAX_QUOTA_WAIT_S)
+                yield {"type": "thought", "text": f"Model rate limit reached on the free tier; waiting {pause:.0f}s."}
+                time.sleep(pause)
+                waited += pause
 
     def run(self, tools: TourTools, request: str, emit_tool: Callable[[str, dict], Iterator[dict]]) -> Iterator[dict]:
         """Yield trace events. ``emit_tool(name, args)`` runs a tool and yields its events."""
@@ -147,7 +197,12 @@ class GeminiAgent:
         contents = [types.Content(role="user", parts=[types.Part.from_text(text=request)])]
         nudges = 0
         for _ in range(self.max_turns):
-            resp = self.generate(contents, config)
+            resp = None
+            for item in self.generate_patiently(contents, config):
+                if isinstance(item, tuple):
+                    resp = item[1]
+                else:
+                    yield item
             content = resp.candidates[0].content if resp.candidates else None
             if content is None or not content.parts:
                 nudges += 1

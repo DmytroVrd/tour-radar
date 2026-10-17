@@ -18,7 +18,10 @@ class Settings:
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
     gemini_fallback_models: tuple[str, ...] = tuple(
-        m.strip() for m in os.getenv("GEMINI_FALLBACK_MODELS", "gemini-3.5-flash-lite,gemini-flash-latest").split(",")
+        m.strip() for m in os.getenv(
+            "GEMINI_FALLBACK_MODELS",
+            "gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-flash-lite-latest,gemini-flash-latest,gemini-3.5-flash",
+        ).split(",")
         if m.strip()
     )
     # "scripted" forces the offline dev agent; it only runs with mock data or ALLOW_SCRIPTED_AGENT=1.
