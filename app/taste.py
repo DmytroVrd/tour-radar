@@ -17,7 +17,7 @@ import statistics
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 
-from app.geo import REGIONS, haversine_km, load_cities
+from app.geo import REGIONS, haversine_km, load_cities, reverse_neighborhood
 from app.qloo import QlooClient
 from app.qloo.client import LIVE_MUSIC_VENUE, LOCAL_SPOT_TAGS
 
@@ -191,7 +191,9 @@ def city_profile(client: QlooClient, entity_ids: list[str], city: dict) -> dict:
     seen_names: set[str | None] = set()
     for h in hotspots(active, k=8):
         name = _nearest_name(h["lat"], h["lon"], named)
-        if name in seen_names:
+        if name is None and not client.is_mock:
+            name = reverse_neighborhood(h["lat"], h["lon"])
+        if name is not None and name in seen_names:
             continue
         seen_names.add(name)
         spots_out.append({

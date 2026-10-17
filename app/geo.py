@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import json
 import math
+import threading
+import time
 from functools import lru_cache
 from pathlib import Path
+
+import httpx
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 _BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
@@ -62,3 +66,49 @@ def find_city(query: str) -> dict | None:
         if q in (city["id"], city["name"].lower(), f"{city['name'].lower()}, {city['state'].lower()}"):
             return city
     return None
+
+
+# --- neighbourhood names (fallback when Qloo places carry none) ---------------------
+
+_NOMINATIM = "https://nominatim.openstreetmap.org/reverse"
+_NOMINATIM_UA = "TourRadar/0.1 (+https://github.com/DmytroVrd/tour-radar)"
+_name_lock = threading.Lock()
+_last_call = [0.0]
+
+
+def _names_cache_path() -> Path:
+    from app.config import settings
+
+    path = Path(settings.cache_dir) / "neighborhoods.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def reverse_neighborhood(lat: float, lon: float) -> str | None:
+    """Name the neighbourhood at a point via OpenStreetMap Nominatim.
+
+    Results are cached on disk and requests are spaced a second apart, per
+    Nominatim's usage policy. Any failure simply returns None.
+    """
+    key = f"{lat:.3f},{lon:.3f}"
+    with _name_lock:
+        path = _names_cache_path()
+        cache = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        if key in cache:
+            return cache[key]
+        wait = 1.1 - (time.monotonic() - _last_call[0])
+        if wait > 0:
+            time.sleep(wait)
+        _last_call[0] = time.monotonic()
+        try:
+            resp = httpx.get(_NOMINATIM, params={"format": "jsonv2", "lat": lat, "lon": lon, "zoom": 15,
+                                                 "addressdetails": 1},
+                             headers={"User-Agent": _NOMINATIM_UA}, timeout=6)
+            addr = resp.json().get("address", {}) if resp.status_code == 200 else {}
+        except (httpx.HTTPError, ValueError):
+            return None
+        name = next((addr[k] for k in ("neighbourhood", "suburb", "quarter", "city_district", "hamlet")
+                     if addr.get(k)), None)
+        cache[key] = name
+        path.write_text(json.dumps(cache, indent=0), encoding="utf-8")
+        return name
