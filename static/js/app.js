@@ -571,6 +571,7 @@ async function start({ example } = {}) {
     return;
   }
   setBusy(true);
+  document.body.classList.add("has-run");
   await tourMap.ready;
   resetRun();
   const qs = example

@@ -682,6 +682,10 @@ html, body {
   .brand p { display: none; }
   .composer { top: 66px; left: 16px; right: 16px; width: auto; padding: 14px; }
   .composer-label { font-size: 18px; }
+  /* Once a tour is running, the form shrinks so the map gets the room. */
+  .has-run .composer-label, .has-run .examples { display: none; }
+  .has-run .composer { padding: 10px; }
+  .has-run .composer-row { margin-top: 8px; }
   .region-pill { display: none; }
   .panel { top: auto; left: 16px; right: 16px; bottom: 16px; width: auto; height: 42vh; }
   .run-badge { display: none; }
