@@ -102,7 +102,7 @@ function hideSuggest() {
 function renderSuggest() {
   els.suggest.innerHTML = suggestItems.map((s, i) => `
     <li role="option" class="${i === suggestIndex ? "is-active" : ""}" data-i="${i}">
-      <span>${esc(s.name)}</span><small>${esc(s.note)}</small>
+      <span>${esc(s.name)}</span><small>${s.note && s.note !== s.name ? esc(s.note) : ""}</small>
     </li>`).join("");
   els.suggest.hidden = !suggestItems.length;
   els.input.setAttribute("aria-expanded", String(!!suggestItems.length));
@@ -419,7 +419,7 @@ function openCity(cityId) {
           <li class="${picked.has(v.id) ? "is-picked" : ""}">
             <button type="button" data-venue="${esc(v.id)}">
               <span class="v-name">${esc(v.name)}${picked.has(v.id) ? `<em>Agent pick</em>` : ""}</span>
-              <span class="v-meta">${esc(v.neighborhood || "")}${v.km_to_hotspot != null ? ` · ${v.km_to_hotspot} km from hotspot` : ""}</span>
+              <span class="v-meta">${esc([v.neighborhood, v.km_to_hotspot != null ? `${v.km_to_hotspot} km from hotspot` : null].filter(Boolean).join(" · "))}</span>
               <span class="v-addr">${esc(v.address || "")}</span>
             </button>
             <span class="v-aff">${pct(v.affinity)}</span>
@@ -516,15 +516,16 @@ function resetRun() {
   tourMap.reset();
 }
 
-function start({ example } = {}) {
+async function start({ example } = {}) {
   if (state.running) return;
   if (!example && !state.artists.length) {
     toast("Add at least one artist you sound like.");
     els.input.focus();
     return;
   }
-  resetRun();
   setBusy(true);
+  await tourMap.ready;
+  resetRun();
   const qs = example
     ? new URLSearchParams({ example })
     : new URLSearchParams({ artists: state.artists.join(","), dates: els.dates.value });
@@ -560,15 +561,13 @@ function start({ example } = {}) {
 
 async function boot() {
   renderChips();
+  // Examples and status must not wait for map tiles.
   try {
-    const [health, cities, examples] = await Promise.all([
+    const [health, examples] = await Promise.all([
       fetch("/api/health").then((r) => r.json()),
-      fetch("/api/cities").then((r) => r.json()),
       fetch("/api/examples").then((r) => r.json()),
-      tourMap.ready,
     ]);
     els.badge.hidden = health.source !== "mock";
-    tourMap.setCandidates(cities);
     examples.forEach((ex) => {
       const b = document.createElement("button");
       b.type = "button";
@@ -587,6 +586,12 @@ async function boot() {
   } catch (err) {
     console.error(err);
     toast("Could not reach the server.");
+  }
+  try {
+    const [cities] = await Promise.all([fetch("/api/cities").then((r) => r.json()), tourMap.ready]);
+    tourMap.setCandidates(cities);
+  } catch (err) {
+    console.error(err);
   }
 }
 
