@@ -27,10 +27,10 @@ def make_agent(monkeypatch):
 
 def test_quota_error_falls_back_and_cools_down(monkeypatch):
     agent, stub = make_agent(monkeypatch)
-    assert agent._generate([], None) == "ok from spare-model"
+    assert agent.generate([], None) == "ok from spare-model"
     assert stub.calls == ["busy-model", "spare-model"]
     # The exhausted model is skipped on the next turn instead of retried.
     stub.calls.clear()
-    agent._generate([], None)
+    agent.generate([], None)
     assert stub.calls == ["spare-model"]
     assert agent.model_used == "spare-model"
