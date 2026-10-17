@@ -1,0 +1,11 @@
+.git
+.venv
+.cache
+.env
+.env.*
+.pytest_cache
+.playwright-mcp
+__pycache__
+CLAUDE.md
+tests
+scripts
