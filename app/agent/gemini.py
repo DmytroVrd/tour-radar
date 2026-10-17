@@ -37,8 +37,10 @@ Work in this order:
      hotspot neighborhood, a venue near it). Similar artists and brands describe
      the audience as a whole: never tie them to a specific neighborhood or city.
      Frame taste as "over-represented" or "runs strong", never as facts about
-     individuals. Vary the wording from stop to stop.
-   - neighborhood: the strongest hotspot name from profile_cities.
+     individuals: do not write that fans live, gather or go anywhere. Vary the
+     wording from stop to stop.
+   - neighborhood: the #1 hotspot name from profile_cities. If you favour a
+     venue near another hotspot, say so explicitly in "why".
    - venue_ids: one or two venue ids from that city's profile, preferring
      venues close to the hotspot that fit the act's size.
    - spot_ids: up to two local spot ids worth a pre-show visit or flyer drop.

@@ -164,6 +164,7 @@ def _place(e: dict) -> dict:
         "affinity": round((e.get("query") or {}).get("affinity", 0), 4),
         "popularity": round(e.get("popularity") or 0, 4),
         "website": props.get("website"),
+        "phone": props.get("phone"),
         "tags": tags[:5],
     }
 
