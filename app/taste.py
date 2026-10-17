@@ -212,12 +212,14 @@ def city_profile(client: QlooClient, entity_ids: list[str], city: dict) -> dict:
             near = min(spots_out, key=lambda s: haversine_km(v["lat"], v["lon"], s["lat"], s["lon"]))
             v["km_to_hotspot"] = round(haversine_km(v["lat"], v["lon"], near["lat"], near["lon"]), 1)
 
-    tastes = [c["taste"] for c in cells]
+    # The glow uses the same active cells the hotspots come from, so the #1
+    # hotspot always sits on the brightest patch.
+    tastes = [c["taste"] for c in active]
     lo, hi = (min(tastes), max(tastes)) if tastes else (0.0, 1.0)
     span = max(hi - lo, 1e-6)
     heat_cells = [
         [round(c["lon"], 5), round(c["lat"], 5), round((c["taste"] - lo) / span, 3)]
-        for c in cells if c["taste"] > lo + 0.45 * span
+        for c in active if c["taste"] > lo + 0.45 * span
     ]
     return {
         "city": {k: city[k] for k in ("id", "name", "state", "lat", "lon")},
