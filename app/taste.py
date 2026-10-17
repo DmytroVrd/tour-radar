@@ -127,6 +127,28 @@ def hotspots(points: list[dict], k: int = 3, min_sep_km: float = 1.5, key: str =
     return picked
 
 
+def _smooth(cells: list[dict], radius_km: float = 0.8, min_neighbours: int = 3) -> None:
+    """Add ``area_taste``: mean taste of cells within ``radius_km``.
+
+    Single cells can spike on noise; a hotspot should be a coherent pocket,
+    which is also what the heatmap glow shows. Cells are bucketed on a coarse
+    grid so this stays fast for a few thousand cells.
+    """
+    step = 0.01  # ~1.1 km of latitude per bucket
+    grid: dict[tuple[int, int], list[dict]] = {}
+    for c in cells:
+        grid.setdefault((int(c["lat"] // step), int(c["lon"] // step)), []).append(c)
+    for c in cells:
+        bi, bj = int(c["lat"] // step), int(c["lon"] // step)
+        near = [
+            o for di in (-1, 0, 1) for dj in (-1, 0, 1) for o in grid.get((bi + di, bj + dj), ())
+            if haversine_km(c["lat"], c["lon"], o["lat"], o["lon"]) <= radius_km
+        ]
+        mean = sum(o["taste"] for o in near) / len(near)
+        # Sparse pockets are shrunk towards the city-wide mean.
+        c["area_taste"] = mean if len(near) >= min_neighbours else mean * len(near) / min_neighbours
+
+
 def _place(e: dict) -> dict:
     props = e.get("properties", {}) or {}
     geo = props.get("geocode", {}) or {}
@@ -186,10 +208,11 @@ def city_profile(client: QlooClient, entity_ids: list[str], city: dict) -> dict:
         cells[-1]["taste"] = blend(cells[-1]["affinity"], cells[-1]["lift"])
     # Ignore near-empty cells so a single quiet block cannot become a "hotspot".
     active = [c for c in cells if c["popularity"] >= 0.3] or cells
+    _smooth(active)
     named = venues + spots
     spots_out: list[dict] = []
     seen_names: set[str | None] = set()
-    for h in hotspots(active, k=8):
+    for h in hotspots(active, k=8, key="area_taste"):
         name = _nearest_name(h["lat"], h["lon"], named)
         if name is None and not client.is_mock:
             name = reverse_neighborhood(h["lat"], h["lon"])
@@ -200,7 +223,7 @@ def city_profile(client: QlooClient, entity_ids: list[str], city: dict) -> dict:
             "rank": len(spots_out) + 1,
             "lat": h["lat"],
             "lon": h["lon"],
-            "taste": round(h["taste"], 3),
+            "taste": round(h["area_taste"], 3),
             "lift": round(h["lift"], 3),
             "affinity": round(h["affinity"], 3),
             "name": name,
