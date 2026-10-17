@@ -6,7 +6,9 @@ from typing import Iterator
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
+from app.agent.email import draft_booking_email
 from app.agent.runner import agent_mode, run_agent
 from app.config import settings
 from app.examples import list_examples, replay
@@ -75,6 +77,28 @@ def agent(
     if not names:
         raise HTTPException(400, "Name at least one artist")
     return _sse(run_agent(names, dates, region))
+
+
+class EmailRequest(BaseModel):
+    artists: list[str] = Field(..., min_length=1, max_length=3)
+    city: str = Field(..., max_length=80)
+    venue: str = Field(..., max_length=120)
+    venue_address: str = Field("", max_length=200)
+    neighborhood: str = Field("", max_length=80)
+    taste_score: int = Field(0, ge=0, le=100)
+    stop_number: int = Field(1, ge=1, le=20)
+    total_stops: int = Field(1, ge=1, le=20)
+    why: str = Field("", max_length=600)
+
+
+@app.post("/api/email")
+def email(req: EmailRequest) -> dict:
+    """Draft a booking inquiry for one venue on the tour."""
+    try:
+        return draft_booking_email(req.model_dump())
+    except Exception as exc:
+        logging.getLogger(__name__).exception("Email draft failed")
+        raise HTTPException(503, "The drafting model is busy. Try again in a minute.") from exc
 
 
 @app.get("/")
