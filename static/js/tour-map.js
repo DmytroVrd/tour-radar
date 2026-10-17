@@ -106,13 +106,13 @@ export class TourMap {
       source: "city-heat",
       minzoom: 8,
       paint: {
-        "heatmap-weight": ["^", ["get", "v"], 3],
+        "heatmap-weight": ["^", ["get", "v"], 2.2],
         // Radius doubles per zoom level so it tracks ground distance (~300 m).
         "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 9, 5, 14, 160],
         // Bright when you first drop into the city, calmer as you read the streets.
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 1.1, 12, 0.7, 14, 0.45],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 9, 1.5, 12, 1.15, 14, 0.75],
         "heatmap-color": HEAT_RAMP,
-        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9.5, 0.85, 12, 0.6, 14, 0.38],
+        "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0, 9.5, 0.85, 12, 0.7, 14, 0.42],
       },
     });
 
@@ -458,7 +458,13 @@ export class TourMap {
     this.markers.forEach((m) => m.getElement().classList.add("is-hidden"));
     this._clearCityMarkers();
     const { city, hotspots, heat } = profile;
-    this.map.getSource("city-heat").setData(points(heat));
+    // Rank-normalise inside the city so every city reads with the same contrast,
+    // whether its taste is compact (Seattle) or spread with outliers (New York).
+    const order = heat.map((c, i) => [c[2], i]).sort((a, b) => a[0] - b[0]);
+    const ranked = heat.map((c) => [...c]);
+    order.forEach(([, i], r) => { ranked[i][2] = order.length > 1 ? r / (order.length - 1) : 1; });
+    this.map.getSource("city-heat").setData(points(ranked));
+    this._fitHeatRadius(heat, city.lat);
     this.map.getSource("hotspots").setData({
       type: "FeatureCollection",
       features: hotspots.map((h) => ({ type: "Feature", geometry: { type: "Point", coordinates: [h.lon, h.lat] }, properties: {} })),
@@ -519,6 +525,22 @@ export class TourMap {
       el.classList.toggle("is-collapsed", hit);
       if (!hit) shown.push(r);
     });
+  }
+
+  // Qloo's grid is finer in some cities than others (≈100 m in Boston, ≈600 m
+  // in New York). Size the glow from the real spacing so cells always merge
+  // into neighbourhoods instead of showing as dots.
+  _fitHeatRadius(heat, lat) {
+    const sample = heat.length > 160 ? heat.filter((_, i) => i % Math.ceil(heat.length / 160) === 0) : heat;
+    const toM = (a, b) => {
+      const dx = (a[0] - b[0]) * 111320 * Math.cos((lat * Math.PI) / 180);
+      const dy = (a[1] - b[1]) * 110540;
+      return Math.hypot(dx, dy);
+    };
+    const nearest = sample.map((a) => Math.min(...heat.filter((b) => b !== a).map((b) => toM(a, b)))).sort((x, y) => x - y);
+    const spacing = Math.max(80, nearest[Math.floor(nearest.length / 2)] || 300);
+    const k = (3.4 * spacing) / (156543.03 * Math.cos((lat * Math.PI) / 180));
+    this.map.setPaintProperty("city-heat", "heatmap-radius", ["interpolate", ["exponential", 2], ["zoom"], 9, k * 512, 15, k * 32768]);
   }
 
   focusPoint(p, zoom = 13.2) {
