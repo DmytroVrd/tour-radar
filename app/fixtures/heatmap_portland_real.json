@@ -1,0 +1,66 @@
+{
+  "success": true,
+  "results": {
+    "heatmap": [
+      {
+        "location": {
+          "latitude": 45.54039,
+          "longitude": -122.66304,
+          "geohash": "c20g0dr"
+        },
+        "query": {
+          "affinity": 1,
+          "affinity_rank": 0.998752,
+          "popularity": 0.9937931034482759,
+          "entity_artist_affinity_rank": 0.998752,
+          "entity_artist_affinity": 1
+        }
+      },
+      {
+        "location": {
+          "latitude": 45.518417,
+          "longitude": -122.67815,
+          "geohash": "c20fbqk"
+        },
+        "query": {
+          "affinity": 0.9993103448275862,
+          "affinity_rank": 0.99857,
+          "popularity": 1,
+          "entity_artist_affinity_rank": 0.99857,
+          "entity_artist_affinity": 0.9993103448275862
+        }
+      },
+      {
+        "location": {
+          "latitude": 45.522537,
+          "longitude": -122.68501,
+          "geohash": "c20fbpp"
+        },
+        "query": {
+          "affinity": 0.9986206896551724,
+          "affinity_rank": 0.998469,
+          "popularity": 0.9986206896551724,
+          "entity_artist_affinity_rank": 0.998469,
+          "entity_artist_affinity": 0.9986206896551724
+        }
+      }
+    ]
+  },
+  "query": {
+    "localities": {
+      "filter": [
+        {
+          "entity_id": "E0AE6376-A732-453A-925F-80F0E2F22AA0",
+          "name": "Portland",
+          "subtype": "urn:entity:locality",
+          "location": {
+            "lat": 45.537304763762485,
+            "lon": -122.65035907485722
+          },
+          "popularity": 0.99897826,
+          "disambiguation": "Portland, Multnomah County, Oregon, United States"
+        }
+      ]
+    }
+  }
+}
