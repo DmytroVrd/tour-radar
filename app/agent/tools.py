@@ -19,6 +19,8 @@ from app.taste import city_profile, region_scan, taste_profile
 
 Emit = Callable[[dict], None]
 
+LONG_LEG_KM = 1600
+
 
 @dataclass
 class ToolResult:
@@ -140,12 +142,19 @@ class TourTools:
             "legs_km": legs,
             "total_km": sum(legs),
         }
+        long_legs = [f"{a['name']} -> {b['name']}: {km:,} km" for a, b, km in zip(ordered, ordered[1:], legs)
+                     if km > LONG_LEG_KM]
+        if long_legs:
+            llm["warning"] = (f"{len(long_legs)} leg(s) exceed {LONG_LEG_KM:,} km, more than a day in a van: "
+                              + "; ".join(long_legs) + ". Consider a tighter regional route.")
         if unknown:
             llm["ignored_unknown_ids"] = unknown
         if too_close:
             llm["dropped_too_close_to_another_stop"] = too_close
         ui = {"route": {"stops": ordered, "legs_km": legs, "total_km": sum(legs)}}
         summary = f"{len(ordered)} stops, {sum(legs):,} km · {ordered[0]['name']} → {ordered[-1]['name']}"
+        if long_legs:
+            summary += f" · {len(long_legs)} long drive{'s' if len(long_legs) > 1 else ''}"
         return ToolResult(llm, ui, summary)
 
     def tool_profile_cities(self, city_ids: list[str], emit: Emit) -> ToolResult:

@@ -60,3 +60,11 @@ def test_submit_plan_rejects_invented_venues_and_missing_stops():
         {"city_id": c, "why": "w", "venue_ids": [v]} for c, v in good_venues.items()]}, noop)
     assert ok.ok
     assert [s["city_id"] for s in tools.full_plan()["stops"]] == [c["id"] for c in tools.state.route]
+
+
+def test_plan_route_warns_about_long_drives():
+    tools = tools_after_scan()
+    res = tools.call("plan_route", {"city_ids": ["boston", "seattle"]}, noop)
+    assert "warning" in res.llm and "Seattle" in res.llm["warning"]
+    short = tools.call("plan_route", {"city_ids": ["boston", "new-york"]}, noop)
+    assert "warning" not in short.llm

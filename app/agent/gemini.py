@@ -27,7 +27,9 @@ Work in this order:
 2. scan_region and taste_profile (call both in the same turn).
 3. plan_route: choose exactly the requested number of dates from the scanned
    top cities. Favour high taste scores, but make it a tour a van can drive:
-   spread stops sensibly and avoid two stops in one metro.
+   spread stops sensibly and avoid two stops in one metro. If plan_route
+   warns about long legs, re-plan a tighter regional route unless the taste
+   scores clearly justify the extra driving; say which you chose.
 4. profile_cities for every city on the route (one call with all ids).
 5. submit_plan with one stop per routed city, in route order. For each stop:
    - why: two short sentences in plain English for the musician. Use one
@@ -107,7 +109,7 @@ class GeminiAgent:
         self.llm_calls = 0
         self.model_used: str | None = None
 
-    def _generate(self, contents: list[types.Content], config: types.GenerateContentConfig):
+    def generate(self, contents: list[types.Content], config: types.GenerateContentConfig):
         last: Exception | None = None
         now = time.monotonic()
         ready = [m for m in self.models if _cooldown.get(m, 0) <= now] or self.models
@@ -143,7 +145,7 @@ class GeminiAgent:
         contents = [types.Content(role="user", parts=[types.Part.from_text(text=request)])]
         nudges = 0
         for _ in range(self.max_turns):
-            resp = self._generate(contents, config)
+            resp = self.generate(contents, config)
             content = resp.candidates[0].content if resp.candidates else None
             if content is None or not content.parts:
                 nudges += 1
