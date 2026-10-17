@@ -2,10 +2,11 @@
 
 Two interchangeable sources sit behind one client:
 
-* ``HttpSource`` calls the hackathon base URL with ``X-Api-Key``, bounded
-  retries and an on-disk response cache.
-* ``MockSource`` serves fixtures that copy the documented response shapes.
-  It exists for development only and every response it returns is tagged
+* ``HttpSource`` calls the hackathon base URL with ``X-Api-Key``, a request
+  throttle that stays under the key's per-second limit, bounded retries and an
+  on-disk response cache.
+* ``MockSource`` serves fixtures shaped like real responses. It exists for
+  development and tests only; every response it returns is tagged
   ``"_source": "mock"`` so the UI can label it.
 """
 
@@ -14,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import threading
 import time
 from pathlib import Path
 from typing import Any, Protocol
@@ -25,6 +27,14 @@ from app.config import settings
 log = logging.getLogger(__name__)
 
 Params = dict[str, Any]
+
+LIVE_MUSIC_VENUE = "urn:tag:genre:place:live_music_venue"
+# Where a touring band's audience hangs out before and after a show.
+LOCAL_SPOT_TAGS = [
+    "urn:tag:category:place:record_store",
+    "urn:tag:category:place:coffee_shop",
+    "urn:tag:category:place:cocktail_bar",
+]
 
 
 class QlooError(RuntimeError):
@@ -59,6 +69,23 @@ def cache_key(path: str, params: Params) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
 
+class _Throttle:
+    """Spaces requests out so a burst never exceeds ``per_second``."""
+
+    def __init__(self, per_second: float):
+        self._interval = 1.0 / per_second
+        self._lock = threading.Lock()
+        self._next = 0.0
+
+    def wait(self) -> None:
+        with self._lock:
+            now = time.monotonic()
+            start = max(now, self._next)
+            self._next = start + self._interval
+        if start > now:
+            time.sleep(start - now)
+
+
 class HttpSource:
     name = "qloo"
 
@@ -67,8 +94,9 @@ class HttpSource:
         api_key: str,
         base_url: str,
         cache_dir: str | Path | None = None,
-        timeout: float = 20.0,
+        timeout: float = 45.0,
         max_retries: int = 2,
+        per_second: float = 3.5,
         transport: httpx.BaseTransport | None = None,
     ):
         if not api_key:
@@ -83,6 +111,7 @@ class HttpSource:
         if self._cache_dir:
             self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._max_retries = max_retries
+        self._throttle = _Throttle(per_second)
 
     def _cache_path(self, path: str, params: Params) -> Path | None:
         if not self._cache_dir:
@@ -95,8 +124,9 @@ class HttpSource:
             return json.loads(cached.read_text(encoding="utf-8"))
 
         query = _normalize(params)
-        delay = 0.8
+        delay = 1.0
         for attempt in range(self._max_retries + 1):
+            self._throttle.wait()
             try:
                 resp = self._client.get(path, params=query)
             except httpx.TransportError as exc:
@@ -106,7 +136,9 @@ class HttpSource:
                 if resp.status_code == 200:
                     data = resp.json()
                     if cached:
-                        cached.write_text(json.dumps(data), encoding="utf-8")
+                        tmp = cached.with_suffix(".tmp")
+                        tmp.write_text(json.dumps(data), encoding="utf-8")
+                        tmp.replace(cached)
                     return data
                 if resp.status_code in (401, 403):
                     raise QlooError(
@@ -125,8 +157,15 @@ class HttpSource:
         raise QlooError("unreachable")  # pragma: no cover
 
 
+def _first_locality(data: dict) -> dict | None:
+    loc = data.get("query", {}).get("localities", {}).get("filter")
+    if isinstance(loc, list):
+        return loc[0] if loc else None
+    return loc
+
+
 class QlooClient:
-    """Thin, typed wrappers over the endpoints Tour Radar uses."""
+    """Thin wrappers over the endpoints Tour Radar uses."""
 
     def __init__(self, source: Source):
         self.source = source
@@ -146,17 +185,6 @@ class QlooClient:
         query.update({k.replace("__", "."): v for k, v in params.items()})
         return self.source.get("/v2/insights", query)
 
-    def heatmap(self, entity_ids: list[str], location_query: str) -> dict:
-        data = self.insights(
-            "urn:heatmap",
-            filter__location__query=location_query,
-            signal__interests__entities=entity_ids,
-        )
-        return {
-            "points": data.get("results", {}).get("heatmap", []),
-            "locality": data.get("query", {}).get("localities", {}).get("filter"),
-        }
-
     def region_heatmap(self, entity_ids: list[str], wkt: str) -> list[dict]:
         """One heatmap over a whole region, so cells are comparable across cities."""
         data = self.insights(
@@ -165,6 +193,17 @@ class QlooClient:
             signal__interests__entities=entity_ids,
         )
         return data.get("results", {}).get("heatmap", [])
+
+    def heatmap(self, entity_ids: list[str], location_query: str) -> dict:
+        data = self.insights(
+            "urn:heatmap",
+            filter__location__query=location_query,
+            signal__interests__entities=entity_ids,
+        )
+        return {
+            "points": data.get("results", {}).get("heatmap", []),
+            "locality": _first_locality(data),
+        }
 
     def places(
         self,
@@ -182,8 +221,8 @@ class QlooClient:
         )
         return data.get("results", {}).get("entities", [])
 
-    def related(self, entity_ids: list[str], filter_type: str, take: int = 5) -> list[dict]:
-        data = self.insights(filter_type, signal__interests__entities=entity_ids, take=take)
+    def related(self, entity_ids: list[str], filter_type: str, take: int = 6, **extra: Any) -> list[dict]:
+        data = self.insights(filter_type, signal__interests__entities=entity_ids, take=take, **extra)
         return data.get("results", {}).get("entities", [])
 
 
