@@ -1,0 +1,19 @@
+name: Keep the demo awake
+
+# Free Hugging Face Spaces sleep after a period without traffic. A light
+# health check every few hours keeps the demo ready for visitors.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the demo
+        env:
+          DEMO_URL: ${{ vars.DEMO_URL }}
+        run: |
+          if [ -z "$DEMO_URL" ]; then echo "Set the DEMO_URL repository variable"; exit 0; fi
+          curl --fail --silent --show-error --max-time 60 --retry 3 --retry-delay 20 "$DEMO_URL/api/health"
