@@ -146,7 +146,7 @@ def _place(e: dict) -> dict:
     }
 
 
-def _nearest_name(lat: float, lon: float, places: list[dict], max_km: float = 2.0) -> str | None:
+def _nearest_name(lat: float, lon: float, places: list[dict], max_km: float = 4.0) -> str | None:
     best, best_d = None, max_km
     for p in places:
         if p["lat"] is None or not p["neighborhood"]:
