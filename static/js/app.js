@@ -423,6 +423,8 @@ function openCity(cityId) {
               <span class="v-addr">${esc(v.address || "")}</span>
             </button>
             <span class="v-aff">${pct(v.affinity)}</span>
+            ${picked.has(v.id) && stop ? `<button type="button" class="ghost-btn draft-btn" data-draft="${esc(v.id)}">Draft booking email</button>
+            <div class="draft" hidden></div>` : ""}
           </li>`).join("")}</ul>
       </section>
 
@@ -439,6 +441,9 @@ function openCity(cityId) {
   els.cityCard.querySelectorAll("[data-venue]").forEach((b) => b.addEventListener("click", () => {
     tourMap.focusVenue(prof.venues.find((v) => v.id === b.dataset.venue));
   }));
+  els.cityCard.querySelectorAll("[data-draft]").forEach((b) => b.addEventListener("click", () => {
+    draftEmail(b, prof.venues.find((v) => v.id === b.dataset.draft), city, stop, order);
+  }));
   tourMap.enterCity(prof, {
     venues: venues.filter((v) => picked.has(v.id)),
     onVenue: (id) => {
@@ -448,6 +453,48 @@ function openCity(cityId) {
       setTimeout(() => row?.parentElement.classList.remove("is-flash"), 900);
     },
   });
+}
+
+async function draftEmail(btn, venue, city, stop, order) {
+  const box = btn.nextElementSibling;
+  btn.disabled = true;
+  btn.textContent = "Drafting…";
+  try {
+    const res = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        artists: state.plan.artists.map((a) => a.name),
+        city: `${city.name}, ${city.state}`,
+        venue: venue.name,
+        venue_address: venue.address || "",
+        neighborhood: stop.neighborhood || venue.neighborhood || "",
+        taste_score: pct(city.score),
+        stop_number: order + 1,
+        total_stops: state.plan.stops.length,
+        why: stop.why,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Drafting failed");
+    box.innerHTML = `
+      <div class="draft-head"><span>Draft</span><span class="src src-agent">Agent</span></div>
+      <input class="draft-subject" value="${esc(data.subject)}" aria-label="Subject">
+      <textarea class="draft-body" rows="9" aria-label="Email body">${esc(data.body)}</textarea>
+      <button type="button" class="ghost-btn draft-copy">Copy email</button>`;
+    box.hidden = false;
+    box.querySelector(".draft-copy").addEventListener("click", async () => {
+      const text = `Subject: ${box.querySelector(".draft-subject").value}
+
+${box.querySelector(".draft-body").value}`;
+      try { await navigator.clipboard.writeText(text); toast("Email copied."); } catch { toast("Copy is blocked in this browser."); }
+    });
+    btn.remove();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = "Draft booking email";
+    toast(err.message);
+  }
 }
 
 function closeCity() {

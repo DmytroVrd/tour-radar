@@ -486,12 +486,30 @@ html, body {
 .venues, .spots { list-style: none; margin: 0; padding: 0; }
 .venues li { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 8px; border-bottom: 1px solid var(--line); transition: background 0.4s; border-radius: 6px; }
 .venues li.is-flash { background: rgba(255, 140, 40, 0.14); }
-.venues button { border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 9px 2px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.venues button[data-venue] { border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 9px 2px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
 .v-name { font-weight: 600; font-size: 13.5px; }
 .v-name em { font-style: normal; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #1a0d02; background: var(--amber); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 2px; }
 .v-meta { font-size: 11.5px; color: var(--muted); }
 .v-addr { font-size: 11px; color: var(--faint); }
 .v-aff { padding-top: 10px; font-size: 13px; color: var(--hot); font-variant-numeric: tabular-nums; }
+.draft-btn { grid-column: 1 / -1; justify-self: start; margin: 0 0 10px; }
+.draft { grid-column: 1 / -1; margin: 0 0 12px; display: grid; gap: 6px; }
+.draft[hidden] { display: none; }
+.draft-head { display: flex; justify-content: space-between; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.draft-subject, .draft-body {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.draft-subject:focus, .draft-body:focus { outline: none; border-color: rgba(255, 179, 71, 0.6); }
+.draft-copy { justify-self: start; }
 .spots li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .spots small { color: var(--faint); font-size: 11px; text-align: right; }
 
