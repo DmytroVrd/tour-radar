@@ -1,10 +1,10 @@
 name: Keep the demo awake
 
-# Free Hugging Face Spaces sleep after a period without traffic. A light
-# health check every few hours keeps the demo ready for visitors.
+# The free hosting tier sleeps after 15 minutes without traffic. A light health
+# check every 10 minutes keeps the demo ready for visitors.
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 jobs:
