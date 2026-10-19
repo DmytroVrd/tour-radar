@@ -89,11 +89,16 @@ def score_cities(cells: list[dict], baseline: dict[str, float] | None = None) ->
     """Score every candidate city from region-wide heatmap cells."""
     baseline = baseline or {}
     ranked = []
+    # A cheap lat/lon box check first keeps this fast on a small hosted CPU.
+    dlat = CITY_RADIUS_KM / 110.0
     for city in load_cities():
+        dlon = CITY_RADIUS_KM / (111.32 * math.cos(math.radians(city["lat"])))
         near = [
             c for c in cells
-            if haversine_km(city["lat"], city["lon"], c["location"]["latitude"],
-                            c["location"]["longitude"]) <= CITY_RADIUS_KM
+            if abs(c["location"]["latitude"] - city["lat"]) <= dlat
+            and abs(c["location"]["longitude"] - city["lon"]) <= dlon
+            and haversine_km(city["lat"], city["lon"], c["location"]["latitude"],
+                             c["location"]["longitude"]) <= CITY_RADIUS_KM
         ]
         if len(near) < 2:
             continue
