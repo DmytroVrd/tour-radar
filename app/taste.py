@@ -193,6 +193,7 @@ def _place(e: dict) -> dict:
         "phone": props.get("phone"),
         "tags": tags[:5],
         "kind": kind,
+        "music_room": venue_fit(e) == 2,
     }
 
 

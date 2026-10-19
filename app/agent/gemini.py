@@ -30,8 +30,9 @@ Work in this order:
 3. plan_route: choose exactly the requested number of dates from the scanned
    top cities. Favour high taste scores, but make it a tour a van can drive:
    spread stops sensibly and avoid two stops in one metro. If plan_route
-   warns about long legs, re-plan a tighter regional route unless the taste
-   scores clearly justify the extra driving; say which you chose.
+   warns about long legs, re-plan once with a tighter regional route unless
+   the taste scores clearly justify the extra driving. Call plan_route at most
+   twice, then commit to the better of the two and say which you chose.
 4. profile_cities for every city on the route (one call with all ids).
 5. submit_plan with one stop per routed city, in route order. For each stop:
    - why: two short sentences in plain English for the musician. Use one
@@ -43,8 +44,10 @@ Work in this order:
      wording from stop to stop.
    - neighborhood: the #1 hotspot name from profile_cities. If you favour a
      venue near another hotspot, say so explicitly in "why".
-   - venue_ids: one or two venue ids from that city's profile, preferring
-     venues close to the hotspot that fit the act's size.
+   - venue_ids: one or two venue ids from that city's profile. Only pick
+     venues with music_room true (concert halls, clubs, live-music bars) when
+     any exist; never a mall, restaurant, festival or event space. Prefer ones
+     close to the hotspot that fit a touring act's size.
    - spot_ids: up to two local spot ids worth a pre-show visit or flyer drop.
    - collab: one concrete merch or content idea with a brand from
      taste_profile, or a local spot.

@@ -289,7 +289,8 @@ def _llm_city(prof: dict) -> dict:
         "city_id": prof["city"]["id"],
         "hotspots": [{"neighborhood": h["name"], "taste": pct(h["taste"])} for h in prof["hotspots"]],
         "venues": [{"id": v["id"], "name": v["name"], "neighborhood": v["neighborhood"],
-                    "affinity": pct(v["affinity"]), "km_to_hotspot": v.get("km_to_hotspot")}
+                    "affinity": pct(v["affinity"]), "km_to_hotspot": v.get("km_to_hotspot"),
+                    "music_room": v.get("music_room", True)}
                    for v in prof["venues"][:6]],
         "local_spots": [{"id": p["id"], "name": p["name"], "neighborhood": p["neighborhood"],
                          "kind": (p["tags"] or [None])[0]} for p in prof["spots"][:4]],
