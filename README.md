@@ -8,6 +8,8 @@ Tour Radar is an agent for independent musicians. You name up to three acts you 
 
 Built for the Qloo Agentic Hackathon (2026).
 
+**Live demo:** https://tour-radar.onrender.com (free tier; the first visit after a quiet spell can take up to a minute to wake). The three examples replay real recorded runs and work instantly.
+
 ## Why this needs Qloo
 
 Small acts can't plan from their own streaming stats: a few thousand monthly listeners spread over 40 cities is noise. Booking tools route by venue capacity or fuel cost, or by "where similar artists played", which only works once you're already on that circuit.
@@ -117,9 +119,13 @@ python scripts/record_example.py slug "Artist A, Artist B" 8 --label "…"   # r
 docker build -t tour-radar . && docker run -p 7860:7860 --env-file .env tour-radar
 ```
 
+### Deploying
+
+`render.yaml` is a Render Blueprint for a free Docker web service: connect the repository in Render, add `QLOO_API_KEY` and `GEMINI_API_KEY` when prompted, and every push to `main` redeploys. The container listens on `$PORT` (default 7860), so any Docker host works.
+
 ## Stack
 
-FastAPI (Python 3.11) streaming the agent as server-sent events · Gemini via `google-genai` · MapLibre GL with OpenFreeMap vector tiles and a custom dark style · plain HTML/CSS/JS, no build step · Docker on a Hugging Face Space. Neighbourhood names come from Qloo place data, with OpenStreetMap Nominatim as a cached fallback.
+FastAPI (Python 3.11) streaming the agent as server-sent events · Gemini via `google-genai` · MapLibre GL with OpenFreeMap vector tiles and a custom dark style · plain HTML/CSS/JS, no build step · Docker on Render's free tier. Neighbourhood names come from Qloo place data, with OpenStreetMap Nominatim as a cached fallback.
 
 ## Respecting the API
 
