@@ -68,3 +68,20 @@ def test_plan_route_warns_about_long_drives():
     assert "warning" in res.llm and "Seattle" in res.llm["warning"]
     short = tools.call("plan_route", {"city_ids": ["boston", "new-york"]}, noop)
     assert "warning" not in short.llm
+
+
+def test_scan_uses_neighbours_when_qloo_has_no_map_data():
+    class SparseClient(QlooClient):
+        def region_heatmap(self, entity_ids, wkt):
+            if "MOCK-ART-0001-PHOEBE-BRIDGERS" in entity_ids:
+                return super().region_heatmap(entity_ids, wkt)[:2]
+            return super().region_heatmap(entity_ids, wkt)
+
+    tools = TourTools(SparseClient(MockSource()), 4)
+    tools.call("search_artists", {"names": ["Phoebe Bridgers"]}, noop)
+    res = tools.call("scan_region", {}, noop)
+    assert res.ok and tools.state.proxy
+    assert tools.state.proxy["for"] == ["Phoebe Bridgers"]
+    assert "note" in res.llm and "No map data" in res.summary
+    assert len(res.ui["cities"]) > 10
+    assert "MOCK-ART-0001-PHOEBE-BRIDGERS" not in tools.state.artist_ids

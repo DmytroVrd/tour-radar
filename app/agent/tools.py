@@ -20,6 +20,10 @@ from app.taste import city_profile, region_scan, taste_profile
 Emit = Callable[[dict], None]
 
 LONG_LEG_KM = 1600
+# Some very famous artists have almost no location data in Qloo (Drake returns
+# two heatmap cells for the whole US). Below this, we map their closest Qloo
+# neighbours instead and say so.
+MIN_REGION_CELLS = 500
 
 
 @dataclass
@@ -42,9 +46,13 @@ class TourState:
     legs_km: list[int] = field(default_factory=list)
     city_profiles: dict[str, dict] = field(default_factory=dict)
     plan: dict | None = None
+    proxy: dict | None = None  # set when similar artists stand in for missing map data
 
     @property
     def artist_ids(self) -> list[str]:
+        """IDs used as the taste signal: the artists, or their stand-ins."""
+        if self.proxy:
+            return [a["id"] for a in self.proxy["using"]]
         return [a["id"] for a in self.artists]
 
 
@@ -96,6 +104,18 @@ class TourTools:
         ids = self._ids(artist_ids)
         emit({"text": "Pulling one nationwide taste heatmap plus a mainstream baseline"})
         scan = region_scan(self.client, ids, self.region)
+        if scan["cell_count"] < MIN_REGION_CELLS and not self.state.proxy:
+            names = ", ".join(a["name"] for a in self.state.artists)
+            emit({"text": f"Qloo has almost no location data for {names}; mapping their closest Qloo neighbours"})
+            known = set(ids)
+            neighbours = [e for e in self.client.related(ids, "urn:entity:artist", 8)
+                          if e.get("entity_id") not in known][:3]
+            if neighbours:
+                self.state.proxy = {
+                    "for": [a["name"] for a in self.state.artists],
+                    "using": [{"id": e["entity_id"], "name": e["name"]} for e in neighbours],
+                }
+                scan = region_scan(self.client, self.state.artist_ids, self.region)
         self.state.ranked = scan["cities"]
         self.state.cities = {c["id"]: c for c in scan["cities"]}
         top = scan["cities"][:16]
@@ -106,9 +126,17 @@ class TourTools:
             "top_cities": [{"id": c["id"], "name": f"{c['name']}, {c['state']}", "taste_score": pct(c["score"]),
                             "lift_pts": pct(c["lift"])} for c in top],
         }
+        if self.state.proxy:
+            stand_ins = ", ".join(a["name"] for a in self.state.proxy["using"])
+            llm["note"] = (f"Qloo has almost no location data for {', '.join(self.state.proxy['for'])}. "
+                           f"This scan uses their closest Qloo neighbours instead: {stand_ins}. "
+                           "Keep planning for the requested artist, and say this plainly in the headline.")
         lead = top[0] if top else None
         summary = (f"Scored {len(scan['cities'])} cities from {scan['cell_count']:,} heatmap cells"
                    + (f" · strongest: {lead['name']} {pct(lead['score'])}" if lead else ""))
+        if self.state.proxy:
+            summary = (f"No map data for {', '.join(self.state.proxy['for'])} in Qloo · using "
+                       f"{', '.join(a['name'] for a in self.state.proxy['using'])} · " + summary)
         return ToolResult(llm, {"cities": scan["cities"], "cells": scan["cells"]}, summary)
 
     def tool_taste_profile(self, emit: Emit, artist_ids: list[str] | None = None) -> ToolResult:
@@ -244,6 +272,7 @@ class TourTools:
         return {
             "headline": st.plan["headline"] if st.plan else "",
             "artists": st.artists,
+            "proxy": st.proxy,
             "profile": st.profile,
             "total_km": sum(st.legs_km),
             "stops": stops,

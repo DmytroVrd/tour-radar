@@ -52,6 +52,8 @@ Work in this order:
 
 Before each tool call, write one short sentence (max 15 words) saying what you
 are about to check and why. Be concrete and calm; no hype words.
+If scan_region says it used neighbouring artists as stand-ins, keep the tour
+for the artist the user named; never switch to another artist yourself.
 If submit_plan returns errors, fix exactly those and submit again."""
 
 
