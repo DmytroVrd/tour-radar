@@ -26,6 +26,24 @@ BASELINE_ARTISTS = ["Taylor Swift", "Drake", "Morgan Wallen", "Bad Bunny", "Ed S
 CITY_RADIUS_KM = 40
 AFFINITY_WEIGHT = 0.6
 
+# Qloo place categories. Music rooms float to the top of the venue list; rooms
+# that are mostly for weddings, banquets or exhibitions sink to the bottom.
+MUSIC_CATEGORIES = {"live_music_venue", "concert_hall", "night_club", "live_music_bar", "stage",
+                    "performing_arts_theater", "music_venue", "jazz_club", "dance_hall"}
+OFF_CATEGORIES = {"wedding_venue", "banquet_hall", "event_planner", "art_gallery", "museum",
+                  "tourist_attraction", "market", "farmers_market", "hotel", "film_production"}
+
+
+def venue_fit(entity: dict) -> int:
+    cats = {t.get("id", "").rsplit(":", 1)[-1] for t in entity.get("tags", [])
+            if "category:place" in (t.get("id") or "")}
+    if cats & MUSIC_CATEGORIES:
+        return 2
+    if cats and cats <= OFF_CATEGORIES:
+        return 0
+    return 1
+
+
 STATE_NAMES = {
     "AZ": "Arizona", "CA": "California", "CO": "Colorado", "DC": "District of Columbia",
     "FL": "Florida", "GA": "Georgia", "ID": "Idaho", "IL": "Illinois", "LA": "Louisiana",
@@ -155,6 +173,8 @@ def _place(e: dict) -> dict:
     geo = props.get("geocode", {}) or {}
     loc = e.get("location", {}) or {}
     tags = [t.get("name") for t in e.get("tags", []) if t.get("name")]
+    kind = next((t.get("name") for t in e.get("tags", [])
+                 if "category:place" in (t.get("id") or "") and "music_venue" not in (t.get("id") or "")), None)
     return {
         "id": e.get("entity_id"),
         "name": e.get("name"),
@@ -167,6 +187,7 @@ def _place(e: dict) -> dict:
         "website": props.get("website"),
         "phone": props.get("phone"),
         "tags": tags[:5],
+        "kind": kind,
     }
 
 
@@ -200,10 +221,12 @@ def city_profile(client: QlooClient, entity_ids: list[str], city: dict) -> dict:
     with ThreadPoolExecutor(max_workers=4) as pool:
         heat_f = pool.submit(client.heatmap, entity_ids, query)
         base_f = pool.submit(lambda: client.heatmap(baseline_ids(client), query))
-        venues_f = pool.submit(client.places, entity_ids, query, [LIVE_MUSIC_VENUE], 8)
+        venues_f = pool.submit(client.places, entity_ids, query, [LIVE_MUSIC_VENUE], 12)
         spots_f = pool.submit(client.places, entity_ids, query, LOCAL_SPOT_TAGS, 12)
         heat, base = heat_f.result(), base_f.result()
-        venues = [_place(e) for e in venues_f.result()]
+        # Stable sort keeps Qloo's affinity order within each fit level.
+        raw_venues = sorted(venues_f.result(), key=lambda e: -venue_fit(e))[:8]
+        venues = [_place(e) for e in raw_venues]
         venue_ids = {v["id"] for v in venues}
         spots = [_place(e) for e in spots_f.result() if e.get("entity_id") not in venue_ids]
 

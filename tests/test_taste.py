@@ -63,3 +63,14 @@ def test_side_name_falls_back_to_compass_side():
     assert _side_name(denver, denver["lat"], denver["lon"] + 0.003) == "Central Denver"
     assert _side_name(denver, denver["lat"] + 0.1, denver["lon"]) == "North Denver"
     assert _side_name(denver, denver["lat"], denver["lon"] - 0.2) == "West Denver"
+
+
+def test_venue_fit_prefers_music_rooms():
+    from app.taste import venue_fit
+
+    def ent(*cats):
+        return {"tags": [{"id": f"urn:tag:category:place:{c}"} for c in cats]}
+
+    assert venue_fit(ent("live_music_venue", "bar")) == 2
+    assert venue_fit(ent("wedding_venue", "banquet_hall")) == 0
+    assert venue_fit(ent("cocktail_bar")) == 1

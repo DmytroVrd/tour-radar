@@ -51,8 +51,10 @@ def examples() -> list[dict]:
 
 
 @app.get("/api/search")
-def search(q: str = Query(..., min_length=2, max_length=80)) -> list[dict]:
+def search(q: str = Query("", max_length=80)) -> list[dict]:
     """Artist autocomplete backed by Qloo search."""
+    if len(q.strip()) < 2:
+        return []
     try:
         hits = get_client().search(q.strip(), take=6)
     except QlooError as exc:

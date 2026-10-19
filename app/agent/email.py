@@ -11,8 +11,9 @@ from app.config import settings
 
 PROMPT = """Write a short booking inquiry email from an independent touring act to a
 music venue. Use ONLY the facts in the JSON below. Anything you do not know
-(band name, exact dates, links, ticket history) must stay as a placeholder in
-square brackets, e.g. [Band name], [proposed dates], [link to music].
+(band name, dates, links, ticket history) must stay as a placeholder in
+square brackets: use exactly [Band name], [proposed date], [link to music].
+Do not mention stop numbers or the number of dates; venues don't need them.
 
 Tone: friendly, specific, professional; no hype. 110-150 words in the body,
 in two or three short paragraphs, signed "[Your name], [Band name]".
