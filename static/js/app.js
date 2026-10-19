@@ -353,6 +353,11 @@ function renderPlan(plan) {
   state.plan = plan;
   els.tourTitle.textContent = `${plan.stops.length} dates`;
   els.tourHeadline.textContent = plan.headline;
+  if (plan.proxy) {
+    els.tourHeadline.insertAdjacentHTML("afterend", `<p class="proxy-note"><b>Heads-up:</b> Qloo has almost no
+      location data for ${esc(plan.proxy.for.join(" + "))}, so this tour maps the taste of their closest Qloo
+      neighbours: ${esc(plan.proxy.using.map((a) => a.name).join(", "))}.</p>`);
+  }
   if (plan.profile) {
     els.audience.innerHTML = `<div class="audience-head"><span>This audience also loves</span><span class="src src-qloo">Qloo</span></div>${profileChips(plan.profile)}`;
     els.audience.hidden = false;
@@ -621,6 +626,7 @@ function resetRun() {
   els.list.innerHTML = "";
   els.audience.hidden = true;
   els.tourHeadline.textContent = "";
+  document.querySelectorAll(".proxy-note").forEach((n) => n.remove());
   [...els.tabs].find((t) => t.dataset.tab === "tour").disabled = true;
   showTab("agent");
   runId += 1;
