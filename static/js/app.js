@@ -38,8 +38,13 @@ const tourMap = new TourMap("map", {
 });
 
 // A small queue so map animations never overlap while events keep streaming.
+// Each run gets an id so animations still queued from an earlier run are dropped.
 let mapQueue = Promise.resolve();
-const onMap = (fn) => (mapQueue = mapQueue.then(fn).catch((e) => console.error(e)));
+let runId = 0;
+const onMap = (fn) => {
+  const id = runId;
+  mapQueue = mapQueue.then(() => (id === runId ? fn() : null)).catch((e) => console.error(e));
+};
 
 // --- tabs ---------------------------------------------------------------------------
 
@@ -77,7 +82,7 @@ function renderChips() {
     els.chips.appendChild(chip);
   });
   const full = state.artists.length >= MAX_ARTISTS;
-  els.input.placeholder = full ? "" : state.artists.length ? "Add another (optional)" : "Type an artist";
+  els.input.placeholder = full ? "Up to 3 artists" : state.artists.length ? "Add another (optional)" : "Type an artist";
   els.input.disabled = full;
 }
 
@@ -163,7 +168,7 @@ function setBusy(busy) {
   state.running = busy;
   els.scan.disabled = busy;
   els.scan.classList.toggle("is-busy", busy);
-  els.scan.querySelector(".scan-btn-text").textContent = busy ? "Agent at work…" : "Plan my tour";
+  els.scan.querySelector(".scan-btn-text").textContent = busy ? "Planning…" : "Plan my tour";
   els.examples.querySelectorAll("button").forEach((b) => (b.disabled = busy));
 }
 
@@ -263,8 +268,10 @@ function onToolEnd(ev) {
 
 function miniBars(cities) {
   const max = Math.max(...cities.map((c) => c.score));
+  const min = Math.min(...cities.map((c) => c.score));
+  const width = (s) => Math.round(35 + 65 * ((s - min) / Math.max(max - min, 1e-6)));
   return `<ol class="mini-bars">${cities.map((c) => `
-    <li><span>${esc(c.name)}</span><i style="width:${Math.round((c.score / max) * 100)}%"></i><b>${pct(c.score)}</b></li>`).join("")}</ol>`;
+    <li><span>${esc(c.name)}</span><i style="width:${width(c.score)}%"></i><b>${pct(c.score)}</b></li>`).join("")}</ol>`;
 }
 
 function profileChips(p, n = 6) {
@@ -423,7 +430,7 @@ function openCity(cityId) {
       ${prof.spots.length ? `<section class="cc-block">
         <div class="cc-label"><span>Pre-show spots</span><span class="src src-qloo">Qloo</span></div>
         <ul class="spots">${prof.spots.slice(0, 4).map((p) => `
-          <li><span>${esc(p.name)}</span><small>${esc([p.tags?.[0], p.neighborhood].filter(Boolean).join(" · "))}</small></li>`).join("")}</ul>
+          <li><span>${esc(p.name)}</span><small>${esc([p.kind, p.neighborhood].filter(Boolean).join(" · "))}</small></li>`).join("")}</ul>
       </section>` : ""}
     </div>`;
 
@@ -473,7 +480,7 @@ function renderVenues(ctx, anchor) {
   $("venues-title").textContent = anchor ? `Venues near ${anchor.name || "this pocket"}` : "Venues this audience favours";
   $("venues").innerHTML = list.map((v) => {
     const where = anchor && v.lat != null
-      ? `${kmBetween(anchor, v).toFixed(1)} km from ${anchor.name || "this pocket"}`
+      ? `${kmBetween(anchor, v).toFixed(1)} km away`
       : v.km_to_hotspot != null ? `${v.km_to_hotspot} km from a hotspot` : null;
     const host = v.website && hostOf(v.website);
     return `
@@ -532,7 +539,7 @@ async function draftEmail(btn, venue, city, stop, order) {
       const text = `Subject: ${box.querySelector(".draft-subject").value}
 
 ${box.querySelector(".draft-body").value}`;
-      try { await navigator.clipboard.writeText(text); toast("Email copied."); } catch { toast("Copy is blocked in this browser."); }
+      toast(await copyText(text) ? "Email copied." : "Copy is blocked in this browser.");
     });
     btn.remove();
   } catch (err) {
@@ -563,6 +570,23 @@ function sheetRows() {
   }));
 }
 
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;left:-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }
+}
+
 els.copy.addEventListener("click", async () => {
   const rows = sheetRows();
   if (!rows.length) return;
@@ -570,12 +594,7 @@ els.copy.addEventListener("click", async () => {
   const text = [`Tour Radar · ${artists} · ${rows.length} dates · ${state.plan.total_km.toLocaleString()} km`, ""]
     .concat(rows.map((r) => `${String(r.date).padStart(2, "0")}. ${r.city} — ${r.venue} (${r.neighborhood})\n    ${r.why}`))
     .join("\n");
-  try {
-    await navigator.clipboard.writeText(text);
-    toast("Tour sheet copied.");
-  } catch {
-    toast("Copy is blocked in this browser. Use CSV instead.");
-  }
+  toast(await copyText(text) ? "Tour sheet copied." : "Copy is blocked in this browser. Use CSV instead.");
 });
 
 els.csv.addEventListener("click", () => {
@@ -604,6 +623,7 @@ function resetRun() {
   els.tourHeadline.textContent = "";
   [...els.tabs].find((t) => t.dataset.tab === "tour").disabled = true;
   showTab("agent");
+  runId += 1;
   mapQueue = Promise.resolve();
   tourMap.reset();
 }

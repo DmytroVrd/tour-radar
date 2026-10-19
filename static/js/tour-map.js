@@ -91,7 +91,7 @@ export class TourMap {
       maxzoom: 9,
       paint: {
         "heatmap-weight": ["^", ["get", "v"], 2],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 1.1, 6, 1.6],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 0.85, 6, 1.3],
         "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 3, 13, 6, 90],
         "heatmap-color": HEAT_RAMP,
         "heatmap-opacity": 0,
@@ -543,7 +543,7 @@ export class TourMap {
     this.map.setPaintProperty("city-heat", "heatmap-radius", ["interpolate", ["exponential", 2], ["zoom"], 9, k * 512, 15, k * 32768]);
   }
 
-  focusPoint(p, zoom = 13.2) {
+  focusPoint(p, zoom = 12.8) {
     this.map.easeTo({ center: [p.lon, p.lat], zoom: Math.max(this.map.getZoom(), zoom), duration: 1000 });
   }
 
@@ -553,7 +553,7 @@ export class TourMap {
       const el = m.getElement();
       if (el.classList.contains("venue-pin")) el.classList.toggle("is-active", m.getLngLat().lat === v.lat && m.getLngLat().lng === v.lon);
     });
-    this.map.easeTo({ center: [v.lon, v.lat], zoom: Math.max(this.map.getZoom(), 13.2), duration: 900 });
+    this.map.easeTo({ center: [v.lon, v.lat], zoom: Math.min(Math.max(this.map.getZoom(), 12.8), 13.4), duration: 900 });
   }
 
   exitCity({ fly = true } = {}) {
