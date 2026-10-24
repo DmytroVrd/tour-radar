@@ -17,9 +17,10 @@ Do not mention stop numbers or the number of dates; venues don't need them.
 
 Tone: friendly, specific, professional; no hype. 110-150 words in the body,
 in two or three short paragraphs, signed "[Your name], [Band name]".
-Say in plain words why this venue and neighbourhood fit (people who like
-these acts are unusually concentrated around it); do not quote internal
-scores or the words "lift" or "baseline". Name the acts the band sounds like
+Say in plain words why this venue and neighbourhood fit: people whose taste
+runs to these acts are over-represented around it. Do not use the word "fans"
+and never claim that anyone lives or goes there. Do not quote internal scores
+or the words "lift" or "baseline". Name the acts the band sounds like
 and ask about availability for the routed date.
 Return JSON: {"subject": "...", "body": "..."}.
 
