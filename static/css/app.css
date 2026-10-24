@@ -611,6 +611,9 @@ html, body {
 }
 .hotspot-label:hover { color: #fff; }
 .hotspot-label.is-collapsed { visibility: hidden; }
+/* Neighbourhood names are the point of the city view: keep them above venue pins and their tooltips. */
+.maplibregl-marker.hotspot-label { z-index: 3; }
+.maplibregl-marker.venue-pin, .maplibregl-marker.spot-pin { z-index: 2; }
 
 /* ---- scrollbars ---- */
 .trace, .tour-scroll, .cc-scroll, .draft-body {
