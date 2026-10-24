@@ -532,6 +532,7 @@ function renderVenues(ctx, anchor) {
 
 async function draftEmail(btn, venue, city, stop, order) {
   const box = btn.closest("li").querySelector(".draft");
+  const picked = !!stop?.venue_ids?.includes(venue.id);
   btn.disabled = true;
   btn.textContent = "Drafting…";
   try {
@@ -543,11 +544,12 @@ async function draftEmail(btn, venue, city, stop, order) {
         city: `${city.name}, ${city.state}`,
         venue: venue.name,
         venue_address: venue.address || "",
-        neighborhood: venue.neighborhood || stop?.neighborhood || "",
+        neighborhood: venue.neighborhood || (picked ? stop?.neighborhood : "") || "",
         taste_score: pct(city.score),
         stop_number: order + 1,
         total_stops: state.plan?.stops.length || 1,
-        why: stop?.why || "",
+        // The stop's "why" was written about the agent's pick; for any other venue it would name the wrong place.
+        why: picked ? stop?.why || "" : "",
       }),
     });
     const data = await res.json();
