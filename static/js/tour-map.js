@@ -309,7 +309,8 @@ export class TourMap {
   }
 
   // Draw the route leg by leg. onStop(i) fires when the head reaches stop i.
-  drawRoute(stops, { msPerUnit = 55, minLegMs = 380, onStop } = {}) {
+  // isStale: called every frame; when it returns true (a newer plan arrived) the animation stops.
+  drawRoute(stops, { msPerUnit = 55, minLegMs = 380, onStop, isStale } = {}) {
     const coords = [];
     const stopIndex = [0];
     for (let i = 1; i < stops.length; i++) {
@@ -331,6 +332,7 @@ export class TourMap {
       let leg = 0;
       let legStart = performance.now();
       const step = (now) => {
+        if (isStale?.()) { resolve(); return; }
         if (!this.route || leg >= legs.length) {
           if (this.route) this._setRouteData(coords.length - 1);
           this.comet = { start: performance.now() };

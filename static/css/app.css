@@ -395,6 +395,7 @@ html, body {
   font-size: 11.5px;
   color: var(--muted);
 }
+.trace-stats[hidden] { display: none; }
 .trace-stats b { color: var(--hot); font-weight: 600; margin-right: 3px; }
 
 /* ---- tour ---- */

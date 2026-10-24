@@ -256,12 +256,17 @@ function onToolEnd(ev) {
     if (li) li.querySelector(".ti-summary").insertAdjacentHTML("afterend", profileChips(data.profile, 3));
   }
   if (data.route) {
-    state.route = data.route;
-    renderRouteSkeleton(data.route);
+    const route = data.route;
+    state.route = route;
+    renderRouteSkeleton(route);
     onMap(async () => {
-      tourMap.markChosen(data.route.stops.map((s) => s.id));
-      await tourMap.focus(data.route.stops);
-      await tourMap.drawRoute(data.route.stops, { onStop: revealStop });
+      // The agent may re-plan several times; the trace keeps every attempt, the map draws only the latest.
+      if (state.route !== route) return;
+      const stale = () => state.route !== route;
+      tourMap.markChosen(route.stops.map((s) => s.id));
+      await tourMap.focus(route.stops);
+      if (stale()) return;
+      await tourMap.drawRoute(route.stops, { onStop: revealStop, isStale: stale });
     });
   }
 }
