@@ -538,10 +538,23 @@ export class TourMap {
       const dy = (a[1] - b[1]) * 110540;
       return Math.hypot(dx, dy);
     };
-    const nearest = sample.map((a) => Math.min(...heat.filter((b) => b !== a).map((b) => toM(a, b)))).sort((x, y) => x - y);
-    const spacing = Math.max(80, nearest[Math.floor(nearest.length / 2)] || 300);
+    const median = (xs) => {
+      const s = xs.filter(Number.isFinite).sort((x, y) => x - y);
+      return s[Math.floor(s.length / 2)];
+    };
+    const nearest = median(sample.map((a) => Math.min(...heat.filter((b) => b !== a).map((b) => toM(a, b)))));
+    // Even-length geohash cells are twice as wide as they are tall (≈1.2 × 0.6 km), so the
+    // nearest neighbour is always the one above. Size from the spacing along a row as well,
+    // otherwise the glow merges vertically only and reads as stripes.
+    const sameRow = (a, b) => Math.abs(a[1] - b[1]) * 110540 < 40;
+    const rowStep = median(sample.map((a) => Math.min(...heat.filter((b) => b !== a && sameRow(a, b)).map((b) => toM(a, b)))));
+    const spacing = Math.max(80, nearest || 300, rowStep && rowStep < 3 * (nearest || 300) ? rowStep : 0);
     const k = (3.4 * spacing) / (156543.03 * Math.cos((lat * Math.PI) / 180));
     this.map.setPaintProperty("city-heat", "heatmap-radius", ["interpolate", ["exponential", 2], ["zoom"], 9, k * 512, 15, k * 32768]);
+    // Wider kernels overlap more; scale intensity back so the glow keeps its contrast.
+    const f = Math.min(1, ((nearest || spacing) / spacing) ** 0.25);
+    this.map.setPaintProperty("city-heat", "heatmap-intensity",
+      ["interpolate", ["linear"], ["zoom"], 9, 1.5 * f, 12, 1.15 * f, 14, 0.75 * f]);
   }
 
   focusPoint(p, zoom = 12.8) {
