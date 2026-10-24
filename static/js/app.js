@@ -30,12 +30,25 @@ const state = {
   currentTab: "agent",
 };
 
+// Keep the route inside the part of the map no panel covers. The composer only covers the
+// top-left corner, so on narrower screens the map uses the space below it instead.
+function mapPadding() {
+  const W = window.innerWidth, H = window.innerHeight;
+  if (isNarrow()) return { top: 230, bottom: Math.round(H * 0.42) + 20, left: 30, right: 30 };
+  const panel = document.getElementById("panel").getBoundingClientRect();
+  const comp = document.getElementById("composer").getBoundingClientRect();
+  const right = Math.max(40, W - panel.left + 30);
+  const beside = { top: 130, bottom: 100, left: comp.right + 40, right };
+  const below = { top: comp.bottom + 30, bottom: 120, left: 40, right };
+  const area = (p) => Math.max(0, W - p.left - p.right) * Math.max(0, H - p.top - p.bottom);
+  return area(beside) >= area(below) ? beside : below;
+}
+
 const tourMap = new TourMap("map", {
-  padding: isNarrow()
-    ? { top: 230, bottom: Math.round(window.innerHeight * 0.42) + 20, left: 30, right: 30 }
-    : { top: 130, bottom: 100, left: 480, right: 560 },
+  padding: mapPadding(),
   onCityClick: (id) => openCity(id),
 });
+window.addEventListener("resize", () => { tourMap.padding = mapPadding(); });
 
 // A small queue so map animations never overlap while events keep streaming.
 // Each run gets an id so animations still queued from an earlier run are dropped.
@@ -640,6 +653,7 @@ function resetRun() {
 }
 
 async function start({ example } = {}) {
+  tourMap.padding = mapPadding();
   if (state.running) return;
   if (!example && !state.artists.length) {
     toast("Add at least one artist you sound like.");

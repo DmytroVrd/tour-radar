@@ -733,6 +733,12 @@ html, body {
 }
 
 /* ---- small screens ---- */
+/* Laptop widths: slimmer side panels leave the route more room. */
+@media (min-width: 861px) and (max-width: 1400px) {
+  .composer { width: 360px; }
+  .panel { width: 360px; }
+}
+
 @media (max-width: 860px) {
   .brand { top: 16px; left: 16px; }
   .brand h1 { font-size: 26px; }
