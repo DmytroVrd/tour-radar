@@ -91,8 +91,8 @@ export class TourMap {
       maxzoom: 9,
       paint: {
         "heatmap-weight": ["^", ["get", "v"], 2],
-        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 3, 0.85, 6, 1.3],
-        "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 3, 13, 6, 90],
+        "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 1, 0.4, 2, 0.52, 3, 0.62, 6, 0.8],
+        "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 1, 5, 2, 12, 3, 21, 6, 80],
         "heatmap-color": HEAT_RAMP,
         "heatmap-opacity": 0,
         "heatmap-opacity-transition": { duration: 1800 },
@@ -241,7 +241,7 @@ export class TourMap {
 
   // Only the strongest slice of cells glows; otherwise thousands of overlapping
   // kernels wash the whole country out. Values are rescaled to 0..1 above it.
-  setTaste(cells, { keep = 0.35 } = {}) {
+  setTaste(cells, { keep = 0.55 } = {}) {
     this.tasteCells = cells;
     const sorted = cells.map((c) => c[2]).sort((a, b) => a - b);
     const cut = sorted[Math.floor(sorted.length * (1 - keep))] ?? 0;
@@ -294,7 +294,8 @@ export class TourMap {
     const chosen = new Set(ids);
     for (const s of this.cities.values()) {
       s.chosen = chosen.has(s.city.id);
-      if (s.chosen) this._animateGlow(s, 1, 600, 0);
+      // Unchosen cities fade back so only the route and the taste glow read.
+      this._animateGlow(s, s.chosen ? 1 : 0.04 + 0.08 * s.affinity, s.chosen ? 600 : 900, 0);
     }
   }
 
