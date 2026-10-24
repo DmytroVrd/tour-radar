@@ -1,7 +1,3 @@
-# local agent context — never publish
-CLAUDE.md
-AGENTS.md
-
 # secrets
 .env
 .env.*
