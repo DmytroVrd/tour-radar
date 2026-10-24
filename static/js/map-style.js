@@ -119,13 +119,14 @@ export function baseStyle() {
 }
 
 // Warm "city lights" ramp: transparent → ember → orange → amber → hot white.
+// Copper glow: translucent at the low end, warm gold at the top, never blown out to white,
+// so gold labels and the route stay readable on top of it.
 export const HEAT_RAMP = [
   "interpolate", ["linear"], ["heatmap-density"],
   0, "rgba(0,0,0,0)",
-  0.12, "rgba(70,18,2,0.35)",
-  0.3, "rgba(140,40,4,0.6)",
-  0.5, "#d4500e",
-  0.7, "#ff8f2e",
-  0.86, "#ffc874",
-  1, "#fff4dc",
+  0.15, "rgba(60,30,14,0.3)",
+  0.35, "rgba(120,62,28,0.5)",
+  0.55, "rgba(170,92,44,0.65)",
+  0.75, "rgba(205,128,66,0.75)",
+  1, "rgba(235,170,104,0.85)",
 ];

@@ -167,7 +167,7 @@ export class TourMap {
       type: "line",
       source: "route",
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": "#ff8a2a", "line-width": 12, "line-blur": 10, "line-opacity": fadeInCity(0.45) },
+      paint: { "line-color": "#ffd45e", "line-width": 12, "line-blur": 10, "line-opacity": fadeInCity(0.45) },
     });
     m.addLayer({
       id: "route-core",
@@ -177,7 +177,7 @@ export class TourMap {
       paint: {
         "line-width": 2.2,
         "line-opacity": fadeInCity(1),
-        "line-gradient": ["interpolate", ["linear"], ["line-progress"], 0, "#ff9a3c", 0.5, "#ffc874", 1, "#fff1d6"],
+        "line-gradient": ["interpolate", ["linear"], ["line-progress"], 0, "#ffd45e", 0.5, "#ffe48f", 1, "#fff4c8"],
       },
     });
 
@@ -189,10 +189,10 @@ export class TourMap {
         "circle-radius": ["case", ["==", ["get", "chosen"], 1],
           ["+", 3.6, ["*", 1.4, ["get", "pulse"]]],
           ["*", 1.8, ["min", ["get", "glow"], 1]]],
-        "circle-color": "#fff6e6",
+        "circle-color": "#fff4c8",
         "circle-opacity": fadeInCity(1, glow),
         "circle-stroke-width": ["case", ["==", ["get", "chosen"], 1], 1.5, 0],
-        "circle-stroke-color": "#ffb347",
+        "circle-stroke-color": "#ffd45e",
         "circle-stroke-opacity": fadeInCity(1, glow),
       },
     });
