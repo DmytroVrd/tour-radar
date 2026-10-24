@@ -1,11 +1,10 @@
 name: Keep the demo awake
 
-# The free hosting tier sleeps after 15 minutes without traffic. During judging
-# this pings every 10 minutes ("*/10 * * * *"); until then a few pings a day
-# keep the service warm without using up Actions minutes.
+# The free hosting tier sleeps after 15 minutes without traffic, so ping it
+# every 10 minutes to keep the demo awake for visitors and judges.
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 jobs:
