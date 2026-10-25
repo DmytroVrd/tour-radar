@@ -1,5 +1,7 @@
 # Tour Radar
 
+![Tour Radar](docs/cover.jpg)
+
 **Plan a tour where your sound already has an audience.**
 
 Tour Radar is an agent for independent musicians. You name up to three acts you sound like. The agent asks the [Qloo Taste AI API](https://docs.qloo.com/) where people with that taste are over-represented across the US, routes a drivable tour through the strongest cities, and for every stop picks the neighbourhood where the taste concentrates, venues that audience favours, pre-show spots, and a collab idea. It explains each stop in plain language and drafts the booking email.
@@ -8,7 +10,20 @@ Tour Radar is an agent for independent musicians. You name up to three acts you 
 
 Built for the Qloo Agentic Hackathon (2026).
 
-**Live demo:** https://tour-radar.onrender.com (free tier; the first visit after a quiet spell can take up to a minute to wake). The three examples replay real recorded runs and work instantly.
+**Live demo:** https://tour-radar.onrender.com. No login. Click one of the three examples for an instant replay of a real recorded run, or type any artist for a live run (about 30–80 seconds while the agent works).
+
+### Trying it as a judge
+
+1. Open the demo and click **Phoebe Bridgers + boygenius**. Watch the agent trace on the right and the cities igniting on the map.
+2. When the route has drawn, open any stop in the **Tour** tab. You get the neighbourhood heatmap, the three strongest pockets and the venues this audience favours.
+3. Click **Draft booking email** on a venue.
+4. Type an artist of your own, for example *Kendrick Lamar*, *Metallica* or *Kamasi Washington*, and press **Plan my tour** for a live run against Qloo and Gemini.
+
+| National taste scan | Route + agent trace |
+|---|---|
+| ![National taste map](docs/national-taste-map.jpg) | ![Route and agent trace](docs/route-and-trace.jpg) |
+| **City drill-down** | **A different sound, a different map** |
+| ![Los Angeles neighbourhoods and venues](docs/city-drill-down.jpg) | ![Noah Kahan's tour](docs/noah-kahan-route.jpg) |
 
 ## Why this needs Qloo
 
@@ -87,6 +102,8 @@ A plain tool-calling loop on Gemini (`gemini-3.5-flash`, with automatic fallback
 
 The model writes one sentence before each call, which the trace shows. Qloo facts are labelled **Qloo** in the UI; interpretations are labelled **Agent**.
 
+The checks are real and the model does trip them. In one recorded Kendrick Lamar run, `submit_plan` came back with *"detroit is not on the planned route"*; the agent re-ran `plan_route` with a confirmed set of eight cities, profiled the two it had not mapped yet, and resubmitted a plan that passed. All of that is visible in the trace.
+
 ## Run it locally
 
 ```bash
@@ -140,7 +157,9 @@ FastAPI (Python 3.11) streaming the agent as server-sent events · Gemini via `g
 - 44 candidate cities. Smaller college towns can be added to `app/data/us_cities.json`.
 - Taste scores show where people with a taste are over-represented relative to a mainstream audience. They are not fan counts or ticket forecasts.
 - Venue capacity isn't in the data, so the agent can pick a room that is too big for a small act; the city card lists every venue Qloo found so you can choose.
+- The route can come back a date short of what you asked for (7 instead of 8) when the planner drops a stop that would split one metro's audience or the model settles on fewer cities; the panel always shows the real count.
 - On the free Gemini tier, heavy traffic can exhaust the quota; the app falls back to lighter models and the examples keep working.
+- Free hosting: the server sleeps after 15 idle minutes. A scheduled ping every 10 minutes keeps it awake, but if you hit a cold start the first load takes up to a minute.
 
 ## License
 
