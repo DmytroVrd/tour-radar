@@ -550,7 +550,16 @@ export class TourMap {
     // otherwise the glow merges vertically only and reads as stripes.
     const sameRow = (a, b) => Math.abs(a[1] - b[1]) * 110540 < 40;
     const rowStep = median(sample.map((a) => Math.min(...heat.filter((b) => b !== a && sameRow(a, b)).map((b) => toM(a, b)))));
-    const spacing = Math.max(80, nearest || 300, rowStep && rowStep < 3 * (nearest || 300) ? rowStep : 0);
+    let spacing = Math.max(80, nearest || 300, rowStep && rowStep < 3 * (nearest || 300) ? rowStep : 0);
+    // On Qloo's fine grid (~150 m, e.g. Pittsburgh, Boston, Burlington) a city often returns only a
+    // few hundred scattered cells; sized from the grid step they render as faint specks. Size from
+    // how far apart the returned cells actually sit instead.
+    if ((nearest || 300) < 300 && heat.length > 3) {
+      const lons = heat.map((c) => c[0]), lats = heat.map((c) => c[1]);
+      const w = (Math.max(...lons) - Math.min(...lons)) * 111320 * Math.cos((lat * Math.PI) / 180);
+      const h = (Math.max(...lats) - Math.min(...lats)) * 110540;
+      spacing = Math.max(spacing, 0.5 * Math.sqrt((w * h) / heat.length));
+    }
     const k = (3.4 * spacing) / (156543.03 * Math.cos((lat * Math.PI) / 180));
     this.map.setPaintProperty("city-heat", "heatmap-radius", ["interpolate", ["exponential", 2], ["zoom"], 9, k * 512, 15, k * 32768]);
     // Wider kernels overlap more; scale intensity back so the glow keeps its contrast.
