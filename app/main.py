@@ -1,5 +1,7 @@
 import json
 import logging
+import queue
+import threading
 from pathlib import Path
 from typing import Iterator
 
@@ -26,10 +28,48 @@ def _source() -> str:
     return "mock" if settings.qloo_mock else "qloo"
 
 
+HEARTBEAT_SECONDS = 5
+_DONE = object()
+
+
 def _sse(events: Iterator[dict]) -> StreamingResponse:
+    """Stream events, with a comment line whenever the agent is quiet.
+
+    A model turn can take 10+ seconds with nothing to send; hosting proxies close
+    streams that stay silent that long. EventSource ignores comment lines.
+    """
     def stream():
-        for ev in events:
-            yield f"data: {json.dumps(ev, separators=(',', ':'))}\n\n"
+        q: queue.Queue = queue.Queue()
+        stop = threading.Event()
+
+        def pump():
+            try:
+                for ev in events:
+                    if stop.is_set():
+                        break
+                    q.put(ev)
+            except Exception:
+                logging.getLogger(__name__).exception("Event stream failed")
+                q.put({"type": "error", "message": "The agent stopped unexpectedly. Try again or open an example."})
+            finally:
+                close = getattr(events, "close", None)
+                if close:
+                    close()
+                q.put(_DONE)
+
+        threading.Thread(target=pump, daemon=True).start()
+        try:
+            while True:
+                try:
+                    ev = q.get(timeout=HEARTBEAT_SECONDS)
+                except queue.Empty:
+                    yield ": keep-alive\n\n"
+                    continue
+                if ev is _DONE:
+                    break
+                yield f"data: {json.dumps(ev, separators=(',', ':'))}\n\n"
+        finally:
+            stop.set()  # the browser went away: let the agent stop at its next step
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
