@@ -10,6 +10,8 @@ Tour Radar is an agent for independent musicians. You name up to three acts you 
 
 Built for the Qloo Agentic Hackathon (2026).
 
+**Demo video (1:24):** https://youtu.be/JvBCvB2U8_A
+
 **Live demo:** https://tour-radar.onrender.com. No login. Click one of the three examples for an instant replay of a real recorded run, or type any artist for a live run (about 30–80 seconds while the agent works).
 
 ### Trying it as a judge
